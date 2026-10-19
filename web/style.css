@@ -73,7 +73,7 @@
   color-scheme: dark;
 }
 :root[data-theme="midnight"] .btn.primary, :root[data-theme="midnight"] .seg button.on {
-  box-shadow: 0 0 0 1px rgba(124, 140, 255, .35), 0 0 18px -4px rgba(124, 140, 255, .55);
+  --ring: 0 0 0 1px rgba(124, 140, 255, .35), 0 0 18px -4px rgba(124, 140, 255, .55);
 }
 :root[data-theme="midnight"] .car { box-shadow: 0 0 22px -4px var(--c); }
 :root[data-theme="midnight"] .panel::before { left: 0; right: 0; height: 1px; border-radius: 0; }
@@ -109,10 +109,10 @@
 :root[data-theme="serious"] .btn, :root[data-theme="serious"] .seg button,
 :root[data-theme="serious"] .theme-pick, :root[data-theme="serious"] .shaft-head em { border-radius: 6px; }
 :root[data-theme="serious"] .seg { border-radius: 8px; }
-:root[data-theme="serious"] .btn:hover:not(:disabled) { transform: none; box-shadow: none; }
+:root[data-theme="serious"] .btn:hover:not(:disabled) { --ring: 0 0 0 0 transparent; }
 :root[data-theme="serious"] .hall, :root[data-theme="serious"] .key { border-radius: 6px; }
 :root[data-theme="serious"] .hall:hover, :root[data-theme="serious"] .key:hover { transform: none; }
-:root[data-theme="serious"] .hall.pend, :root[data-theme="serious"] .car-panel .key.lit { box-shadow: none; animation: none; }
+:root[data-theme="serious"] .hall.pend, :root[data-theme="serious"] .car-panel .key.lit { --ring: 0 0 0 0 transparent; animation: none; }
 :root[data-theme="serious"] .car { border-radius: 6px; box-shadow: none; }
 :root[data-theme="serious"] .car .door { background: var(--c); }
 :root[data-theme="serious"] .fsm .node rect { rx: 6px; ry: 6px; }
@@ -369,7 +369,7 @@ h2 { font-family: var(--fun); font-weight: 600; font-size: 14px; letter-spacing:
 
 /* buttons: pills that lift on hover */
 .btn, .seg button { font-family: var(--fun); font-weight: 500; border-radius: 999px; transition: transform .12s, box-shadow .12s, background .12s; }
-.btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 14px -8px var(--accent); }
+.btn:hover:not(:disabled) { --ring: 0 6px 14px -8px var(--accent); }
 .btn.primary, .seg button.on, .wave-zoom .btn.on {
   background: var(--grad-btn); color: var(--btn-text); border-color: transparent;
 }
@@ -395,14 +395,14 @@ input[type=range], input[type=checkbox] { accent-color: var(--accent); }
 
 /* hall and cabin buttons: round, and they glow when lit */
 .hall { border-radius: 999px; border-color: var(--border); transition: transform .1s; }
-.hall:hover { transform: scale(1.08); }
+.hall:hover { filter: brightness(1.12); }
 .key { border-radius: 50%; border-color: var(--border); transition: transform .1s; }
-.key:hover { transform: scale(1.08); }
-.hall.pend { box-shadow: 0 0 0 4px color-mix(in srgb, var(--hot) 22%, transparent); animation: pulse 1.4s ease-in-out infinite; }
-.hall.pend.own0 { box-shadow: 0 0 0 4px color-mix(in srgb, var(--a) 25%, transparent); }
-.hall.pend.own1 { box-shadow: 0 0 0 4px color-mix(in srgb, var(--b) 25%, transparent); }
-.car-panel.a .key.lit { box-shadow: 0 0 0 4px color-mix(in srgb, var(--a) 25%, transparent); }
-.car-panel.b .key.lit { box-shadow: 0 0 0 4px color-mix(in srgb, var(--b) 25%, transparent); }
+.key:hover { filter: brightness(1.12); }
+.hall.pend { --ring: 0 0 0 4px color-mix(in srgb, var(--hot) 22%, transparent); animation: pulse 1.4s ease-in-out infinite; }
+.hall.pend.own0 { --ring: 0 0 0 4px color-mix(in srgb, var(--a) 25%, transparent); }
+.hall.pend.own1 { --ring: 0 0 0 4px color-mix(in srgb, var(--b) 25%, transparent); }
+.car-panel.a .key.lit { --ring: 0 0 0 4px color-mix(in srgb, var(--a) 25%, transparent); }
+.car-panel.b .key.lit { --ring: 0 0 0 4px color-mix(in srgb, var(--b) 25%, transparent); }
 @keyframes pulse { 50% { transform: scale(1.07); } }
 
 /* state diagram */
@@ -427,6 +427,38 @@ input[type=range], input[type=checkbox] { accent-color: var(--accent); }
 .log li { border-radius: 6px; padding: 3px 6px; border-bottom: 0; }
 .log li:nth-child(odd) { background: var(--fill); }
 .wave-body, .wave-add { border-radius: 12px; }
+
+/* ---------- tactile buttons ----------
+   Every button sits on a small raised edge (--depth). Pressing pushes it down
+   into the page; lit cabin / hall buttons look pressed in. Glows are added on
+   top through --ring, so they work together with the depth. */
+:root {
+  --btn-edge: color-mix(in srgb, var(--border) 55%, #000);
+  --sheen: color-mix(in srgb, var(--bg) 88%, #fff);
+}
+.btn, .seg button.on, .hall, .key, .theme-pick {
+  --depth: inset 0 1px 0 rgba(255, 255, 255, .07), 0 2px 0 var(--btn-edge), 0 4px 8px -4px rgba(0, 0, 0, .5);
+  box-shadow: var(--ring, 0 0 0 0 transparent), var(--depth);
+  transition: transform .07s ease-out, box-shadow .07s ease-out, filter .12s, background .12s;
+}
+.hall, .key { background: linear-gradient(180deg, var(--sheen), var(--bg)); }
+.btn:hover:not(:disabled), .theme-pick:hover { filter: brightness(1.1); }
+.btn:active:not(:disabled), .seg button:active, .hall:active, .key:active, .theme-pick:active {
+  transform: translateY(2px);
+  --depth: inset 0 2px 4px rgba(0, 0, 0, .45), 0 0 0 var(--btn-edge);
+  filter: brightness(.95);
+}
+/* lit buttons: pressed in and glowing */
+.hall.pend, .car-panel .key.lit {
+  --depth: inset 0 2px 3px rgba(0, 0, 0, .35), 0 0 0 var(--btn-edge);
+  transform: translateY(1px);
+}
+.hall.pend { animation: none; }
+:root[data-theme="serious"] .btn, :root[data-theme="serious"] .hall, :root[data-theme="serious"] .key,
+:root[data-theme="serious"] .theme-pick, :root[data-theme="serious"] .seg button.on {
+  --depth: 0 1px 0 var(--btn-edge), 0 2px 3px -1px rgba(0, 0, 0, .45);
+}
+:root[data-theme="serious"] .hall, :root[data-theme="serious"] .key { background: var(--bg); }
 
 @media (max-width: 980px) {
   .layout { grid-template-columns: minmax(0, 1fr); padding: 16px; }

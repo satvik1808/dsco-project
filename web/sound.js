@@ -37,6 +37,7 @@
 
   // short electronic lift-button beep
   function press() {
+    if (navigator.vibrate) try { navigator.vibrate(8); } catch (e) {}   // a tiny tap on phones
     if (!enabled || !ensure()) return;
     const t = ctx.currentTime;
     tone(1046.5, t, 0.11, { type: 'square', vol: 0.06 });

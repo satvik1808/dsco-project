@@ -16,6 +16,7 @@
   --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --dark-hover: #333333;
   --edge: #8a919c;
+  --fsm-arrow: #16a34a;
   --bit-off: #9aa1ab;
   --grid: #e5e7eb;
   --log-line: #eceef1;
@@ -29,7 +30,7 @@
   :root:not([data-theme="light"]) {
     --bg: #1a1d22; --text: #e6e8eb; --muted: #a3a9b3; --line: #2f343b; --dark: #e6e8eb; --fill: #22262c;
     --a: #5aa2ff; --a-soft: #1c3350; --b: #ff8d3f; --b-soft: #4a2b16; --hot: #ff5c5c; --ok: #4cc26a;
-    --dark-hover: #c8ccd2; --edge: #7a818b; --bit-off: #6c737d; --grid: #2a2e34; --log-line: #262a30;
+    --dark-hover: #c8ccd2; --edge: #7a818b; --fsm-arrow: #4ade80; --bit-off: #6c737d; --grid: #2a2e34; --log-line: #262a30;
     --page: #0f1114; --border: #363c45;
     color-scheme: dark;
   }
@@ -37,7 +38,7 @@
 :root[data-theme="dark"] {
   --bg: #1a1d22; --text: #e6e8eb; --muted: #a3a9b3; --line: #2f343b; --dark: #e6e8eb; --fill: #22262c;
   --a: #5aa2ff; --a-soft: #1c3350; --b: #ff8d3f; --b-soft: #4a2b16; --hot: #ff5c5c; --ok: #4cc26a;
-  --dark-hover: #c8ccd2; --edge: #7a818b; --bit-off: #6c737d; --grid: #2a2e34; --log-line: #262a30;
+  --dark-hover: #c8ccd2; --edge: #7a818b; --fsm-arrow: #4ade80; --bit-off: #6c737d; --grid: #2a2e34; --log-line: #262a30;
     --page: #0f1114; --border: #363c45;
   color-scheme: dark;
 }
@@ -165,8 +166,8 @@ input[type=checkbox] { accent-color: var(--dark); }
 .car-panel.a .fsm .node.on rect { fill: var(--a); stroke: var(--a); }
 .car-panel.b .fsm .node.on rect { fill: var(--b); stroke: var(--b); }
 .fsm .node.on text { fill: var(--bg); }
-.fsm .edge { fill: none; stroke: var(--edge); stroke-width: 1; }
-.fsm .mk { fill: var(--edge); }
+.fsm .edge { fill: none; stroke: var(--fsm-arrow); stroke-width: 1.2; }
+.fsm .mk { fill: var(--fsm-arrow); }
 .car-panel.a .fsm .mk.h { fill: var(--a); }
 .car-panel.b .fsm .mk.h { fill: var(--b); }
 .car-panel.a .fsm .edge.hot { stroke: var(--a); stroke-width: 2; }

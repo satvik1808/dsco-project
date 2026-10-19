@@ -92,8 +92,9 @@
         <marker id="m${i}d" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path class="mk" d="M0,0 L8,4 L0,8z"/></marker>
         <marker id="m${i}h" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path class="mk h" d="M0,0 L8,4 L0,8z"/></marker>
       </defs>
-      ${EDGES.map(([a, b]) => `<path class="edge" data-e="${a}${b}" d="${edgePath(a, b)}" marker-end="url(#m${i}d)"/>`).join('')}
+      <!-- state boxes first, arrows after so they are drawn on top -->
       ${NODES.map(([x, y], s) => `<g class="node" data-s="${s}"><rect x="${x - 34}" y="${y - 12}" width="68" height="24"/><text x="${x}" y="${y}">${STATE_NAMES[s]}</text></g>`).join('')}
+      ${EDGES.map(([a, b]) => `<path class="edge" data-e="${a}${b}" d="${edgePath(a, b)}" marker-end="url(#m${i}d)"/>`).join('')}
     </svg>`;
   }
   const carUI = [0, 1].map(i => {

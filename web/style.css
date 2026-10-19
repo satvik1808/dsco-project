@@ -202,9 +202,13 @@ input[type=checkbox] { accent-color: var(--dark); }
 }
 .hall.hidden { visibility: hidden; }
 .hall:hover { background: var(--fill); }
-.hall.pend { color: var(--bg); background: var(--hot); border-color: var(--hot); }
-.hall.pend.own0 { background: var(--a); border-color: var(--a); }
-.hall.pend.own1 { background: var(--b); border-color: var(--b); }
+.hall.pend { --lit: var(--hot); }
+.hall.pend.own0 { --lit: var(--a); }
+.hall.pend.own1 { --lit: var(--b); }
+.hall.pend {
+  color: var(--lit); border-color: var(--lit); font-weight: 700;
+  text-shadow: 0 0 6px color-mix(in srgb, var(--lit) 70%, transparent);
+}
 .shaft-cell { height: 100%; background: var(--fill); border-left: 1px solid var(--line); border-right: 1px solid var(--line); position: relative; }
 .stop-mark { position: absolute; right: 3px; top: 50%; width: 6px; height: 6px; transform: translateY(-50%); opacity: 0; }
 .a-col .stop-mark { background: var(--a); }
@@ -398,9 +402,7 @@ input[type=range], input[type=checkbox] { accent-color: var(--accent); }
 .hall:hover { filter: brightness(1.12); }
 .key { border-radius: 50%; border-color: var(--border); transition: transform .1s; }
 .key:hover { filter: brightness(1.12); }
-.hall.pend { --ring: 0 0 0 4px color-mix(in srgb, var(--hot) 22%, transparent); animation: pulse 1.4s ease-in-out infinite; }
-.hall.pend.own0 { --ring: 0 0 0 4px color-mix(in srgb, var(--a) 25%, transparent); }
-.hall.pend.own1 { --ring: 0 0 0 4px color-mix(in srgb, var(--b) 25%, transparent); }
+.hall.pend { --ring: 0 0 0 3px color-mix(in srgb, var(--lit) 22%, transparent); }
 .car-panel.a .key.lit { --ring: 0 0 0 4px color-mix(in srgb, var(--a) 25%, transparent); }
 .car-panel.b .key.lit { --ring: 0 0 0 4px color-mix(in srgb, var(--b) 25%, transparent); }
 @keyframes pulse { 50% { transform: scale(1.07); } }
@@ -442,6 +444,7 @@ input[type=range], input[type=checkbox] { accent-color: var(--accent); }
   transition: transform .07s ease-out, box-shadow .07s ease-out, filter .12s, background .12s;
 }
 .hall, .key { background: linear-gradient(180deg, var(--sheen), var(--bg)); }
+.hall.pend { background: linear-gradient(180deg, color-mix(in srgb, var(--lit) 16%, var(--bg)), color-mix(in srgb, var(--lit) 6%, var(--bg))); }
 .btn:hover:not(:disabled), .theme-pick:hover { filter: brightness(1.1); }
 .btn:active:not(:disabled), .seg button:active, .hall:active, .key:active, .theme-pick:active {
   transform: translateY(2px);
@@ -458,7 +461,8 @@ input[type=range], input[type=checkbox] { accent-color: var(--accent); }
 :root[data-theme="serious"] .theme-pick, :root[data-theme="serious"] .seg button.on {
   --depth: 0 1px 0 var(--btn-edge), 0 2px 3px -1px rgba(0, 0, 0, .45);
 }
-:root[data-theme="serious"] .hall, :root[data-theme="serious"] .key { background: var(--bg); }
+:root[data-theme="serious"] .hall:not(.pend), :root[data-theme="serious"] .key:not(.lit) { background: var(--bg); }
+:root[data-theme="serious"] .hall.pend { background: color-mix(in srgb, var(--lit) 12%, var(--bg)); text-shadow: none; }
 
 /* raised 3D look for the car panels, floor chips and the lift cars */
 .car-panel {

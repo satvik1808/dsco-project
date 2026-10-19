@@ -33,7 +33,6 @@
 /* derived tokens: the fun themes build them from --v1..--v3, Midnight sets its own */
 :root {
   --accent: var(--v1);
-  --grad-title: linear-gradient(90deg, var(--v1), var(--v2) 55%, var(--v3));
   --grad-strip: linear-gradient(90deg, var(--v1), var(--v2), var(--v3));
   --grad-btn: linear-gradient(135deg, #7c3aed, #db2777);
   --btn-text: #fff;
@@ -66,7 +65,6 @@
   --dark-hover: #ffffff; --edge: #4a505c; --fsm-arrow: #4ade80; --bit-off: #3b414c; --grid: #161a21; --log-line: #141820;
   --border: #1e232d; --shaft: #0f1218; --glow: rgba(110, 168, 255, .16);
   --accent: #7c8cff;
-  --grad-title: linear-gradient(90deg, #f4f5f8, #9aa3b5);
   --grad-strip: linear-gradient(90deg, transparent, rgba(124, 140, 255, .55), transparent);
   --grad-btn: linear-gradient(135deg, #2b3350, #1a2036);
   --btn-text: #dfe4ff;
@@ -85,6 +83,48 @@
 :root[data-theme="midnight"] .floor-label { color: var(--muted); }
 :root[data-theme="midnight"] .floor:last-child { border-bottom-color: var(--border); }
 :root[data-theme="midnight"] h1 .logo { box-shadow: 0 0 20px -4px rgba(124, 140, 255, .6); }
+/* Serious: flat graphite, IBM Plex fonts, no glow, no gradients, no motion */
+:root[data-theme="serious"] {
+  --bg: #16181c; --page: #0f1013; --text: #e6e7ea; --muted: #8e939d; --line: #24272d; --dark: #e6e7ea; --fill: #1c1f24;
+  --a: #5b9bd5; --a-soft: #1b2a3a; --b: #d9a35b; --b-soft: #33281a; --hot: #e5534b; --ok: #46a758;
+  --dark-hover: #ffffff; --edge: #5a606b; --fsm-arrow: #46a758; --bit-off: #474c56; --grid: #1f2227; --log-line: #1c1f24;
+  --border: #2a2e35; --shaft: #121417; --glow: transparent;
+  --accent: #5b9bd5;
+  --grad-strip: none;
+  --grad-btn: #e6e7ea;
+  --btn-text: #0f1013;
+  --blob1: transparent; --blob2: transparent; --blob3: transparent;
+  --panel-shadow: none;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --fun: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  color-scheme: dark;
+}
+:root[data-theme="serious"] .panel { border-radius: 8px; }
+:root[data-theme="serious"] .panel::before { display: none; }
+:root[data-theme="serious"] .panel-head { border-bottom-style: solid; }
+:root[data-theme="serious"] h1 { font-weight: 600; font-size: 22px; letter-spacing: -.01em; }
+:root[data-theme="serious"] h1 .logo { background: var(--fill); border: 1px solid var(--border); box-shadow: none; border-radius: 8px; }
+:root[data-theme="serious"] h2 { font-weight: 600; font-size: 12px; letter-spacing: .08em; color: var(--muted); }
+:root[data-theme="serious"] .btn, :root[data-theme="serious"] .seg button,
+:root[data-theme="serious"] .theme-pick, :root[data-theme="serious"] .shaft-head em { border-radius: 6px; }
+:root[data-theme="serious"] .seg { border-radius: 8px; }
+:root[data-theme="serious"] .btn:hover:not(:disabled) { transform: none; box-shadow: none; }
+:root[data-theme="serious"] .hall, :root[data-theme="serious"] .key { border-radius: 6px; }
+:root[data-theme="serious"] .hall:hover, :root[data-theme="serious"] .key:hover { transform: none; }
+:root[data-theme="serious"] .hall.pend, :root[data-theme="serious"] .car-panel .key.lit { box-shadow: none; animation: none; }
+:root[data-theme="serious"] .car { border-radius: 6px; box-shadow: none; }
+:root[data-theme="serious"] .car .door { background: var(--c); }
+:root[data-theme="serious"] .fsm .node rect { rx: 6px; ry: 6px; }
+:root[data-theme="serious"] .car-panel .fsm .node.on rect { filter: none; }
+:root[data-theme="serious"] .bit { border-radius: 3px; }
+:root[data-theme="serious"] .floor-label { color: var(--muted); font-weight: 400; }
+:root[data-theme="serious"] .floor:last-child { border-bottom: 2px solid var(--edge); }
+:root[data-theme="serious"] .shaft-cell { background: var(--shaft); }
+:root[data-theme="serious"] .decision { background: var(--fill); border-left-width: 3px; border-radius: 6px; }
+:root[data-theme="serious"] .log li:nth-child(odd) { background: transparent; }
+:root[data-theme="serious"] .log li { border-bottom: 1px solid var(--log-line); border-radius: 0; }
+:root[data-theme="serious"] .top { background: var(--bg); backdrop-filter: none; -webkit-backdrop-filter: none; }
 * { box-sizing: border-box; }
 html, body { margin: 0; }
 body {
@@ -310,10 +350,7 @@ h1 .logo {
   display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; font-size: 22px;
   background: var(--grad-btn); box-shadow: 0 6px 16px -6px var(--accent);
 }
-h1 .grad {
-  background: var(--grad-title);
-  -webkit-background-clip: text; background-clip: text; color: transparent;
-}
+h1 .grad { color: var(--text); }
 h2 { font-family: var(--fun); font-weight: 600; font-size: 14px; letter-spacing: .04em; color: var(--text); }
 
 /* panels: rounded cards with a colourful strip on top */

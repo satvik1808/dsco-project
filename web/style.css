@@ -1,45 +1,50 @@
+/* ---------- colour tokens: a playful violet / pink palette ---------- */
 :root {
-  --bg: #ffffff;
-  --text: #111111;
-  --muted: #5c6370;
-  --line: #dde0e5;
-  --dark: #111111;
-  --fill: #f2f2f2;
-  --a: #0057b8;
-  --a-soft: #dce8f6;
-  --b: #c45100;
-  --b-soft: #f8e3d4;
-  --hot: #cc0000;
-  --ok: #1a7f37;
+  --bg: #ffffff;          /* panels */
+  --page: #f5f0ff;        /* page background */
+  --text: #1f1640;
+  --muted: #6b6488;
+  --line: #ece6fb;
+  --dark: #2a1f5c;
+  --fill: #f4f0ff;
+  --a: #4f6bff;           /* Car A */
+  --a-soft: #e3e8ff;
+  --b: #ff7a1a;           /* Car B */
+  --b-soft: #ffe8d6;
+  --hot: #ff3d71;
+  --ok: #12b76a;
   --row: 60px;
   --cols: 44px 64px minmax(0, 1fr) minmax(0, 1fr);
-  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  --dark-hover: #333333;
-  --edge: #8a919c;
-  --fsm-arrow: #16a34a;
-  --bit-off: #9aa1ab;
-  --grid: #e5e7eb;
-  --log-line: #eceef1;
-  --page: #f3f4f6;
-  --border: #d3d7dd;
-  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --sans: "Nunito", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --fun: "Fredoka", "Nunito", system-ui, sans-serif;
+  --dark-hover: #3d2f80;
+  --edge: #a39fbf;
+  --fsm-arrow: #12b76a;
+  --bit-off: #b5afcc;
+  --grid: #ece6fb;
+  --log-line: #f1edfb;
+  --border: #e2dbf7;
+  --v1: #8b5cf6; --v2: #ec4899; --v3: #ff9f1c;   /* gradient stops */
+  --shaft: #eef3ff;
+  --glow: rgba(124, 77, 255, .18);
   color-scheme: light;
 }
 /* dark theme: follows the system unless the toggle picked light */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #1a1d22; --text: #e6e8eb; --muted: #a3a9b3; --line: #2f343b; --dark: #e6e8eb; --fill: #22262c;
-    --a: #5aa2ff; --a-soft: #1c3350; --b: #ff8d3f; --b-soft: #4a2b16; --hot: #ff5c5c; --ok: #4cc26a;
-    --dark-hover: #c8ccd2; --edge: #7a818b; --fsm-arrow: #4ade80; --bit-off: #6c737d; --grid: #2a2e34; --log-line: #262a30;
-    --page: #0f1114; --border: #363c45;
+    --bg: #1c1636; --page: #120d26; --text: #f1edff; --muted: #a99fd0; --line: #2e2654; --dark: #d6ccff; --fill: #251e45;
+    --a: #7c93ff; --a-soft: #232c5e; --b: #ffa04d; --b-soft: #4a2b16; --hot: #ff6b93; --ok: #34d399;
+    --dark-hover: #b9a9ff; --edge: #6f66a0; --fsm-arrow: #4ade80; --bit-off: #6d6596; --grid: #2a2350; --log-line: #261f47;
+    --border: #352c63; --v1: #a78bfa; --v2: #f472b6; --v3: #fdba74; --shaft: #211b40; --glow: rgba(167, 139, 250, .22);
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #1a1d22; --text: #e6e8eb; --muted: #a3a9b3; --line: #2f343b; --dark: #e6e8eb; --fill: #22262c;
-  --a: #5aa2ff; --a-soft: #1c3350; --b: #ff8d3f; --b-soft: #4a2b16; --hot: #ff5c5c; --ok: #4cc26a;
-  --dark-hover: #c8ccd2; --edge: #7a818b; --fsm-arrow: #4ade80; --bit-off: #6c737d; --grid: #2a2e34; --log-line: #262a30;
-    --page: #0f1114; --border: #363c45;
+  --bg: #1c1636; --page: #120d26; --text: #f1edff; --muted: #a99fd0; --line: #2e2654; --dark: #d6ccff; --fill: #251e45;
+  --a: #7c93ff; --a-soft: #232c5e; --b: #ffa04d; --b-soft: #4a2b16; --hot: #ff6b93; --ok: #34d399;
+  --dark-hover: #b9a9ff; --edge: #6f66a0; --fsm-arrow: #4ade80; --bit-off: #6d6596; --grid: #2a2350; --log-line: #261f47;
+  --border: #352c63; --v1: #a78bfa; --v2: #f472b6; --v3: #fdba74; --shaft: #211b40; --glow: rgba(167, 139, 250, .22);
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -247,6 +252,103 @@ h2 { font-size: 12.5px; letter-spacing: .06em; }
 .wave-name button:hover { color: var(--hot); }
 .wave-wrap { min-width: 0; overflow: hidden; }
 .wave-wrap canvas { display: block; width: 100%; cursor: crosshair; touch-action: none; }
+
+/* ---------- fun theme ---------- */
+body {
+  background:
+    radial-gradient(900px 500px at 0% 0%, color-mix(in srgb, var(--v1) 16%, transparent), transparent 70%),
+    radial-gradient(800px 500px at 100% 10%, color-mix(in srgb, var(--v2) 13%, transparent), transparent 70%),
+    radial-gradient(900px 600px at 50% 100%, color-mix(in srgb, var(--v3) 12%, transparent), transparent 70%),
+    var(--page);
+  background-attachment: fixed;
+}
+.top {
+  background: color-mix(in srgb, var(--bg) 78%, transparent);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+h1 { font: 700 26px/1.1 var(--fun); display: flex; align-items: center; gap: 10px; }
+h1 .logo {
+  display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; font-size: 22px;
+  background: linear-gradient(135deg, #7c3aed, #db2777); box-shadow: 0 6px 16px -6px #db2777;
+}
+h1 .grad {
+  background: linear-gradient(90deg, var(--v1), var(--v2) 55%, var(--v3));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+h2 { font-family: var(--fun); font-weight: 600; font-size: 14px; letter-spacing: .04em; color: var(--text); }
+
+/* panels: rounded cards with a colourful strip on top */
+.panel {
+  position: relative; border-radius: 18px; border: 1px solid var(--border);
+  box-shadow: 0 10px 30px -18px rgba(70, 40, 160, .45);
+}
+.panel::before {
+  content: ""; position: absolute; left: 18px; right: 18px; top: 0; height: 4px; border-radius: 0 0 4px 4px;
+  background: linear-gradient(90deg, var(--v1), var(--v2), var(--v3));
+}
+.car-panel.a::before { background: linear-gradient(90deg, var(--a), color-mix(in srgb, var(--a) 40%, var(--v1))); }
+.car-panel.b::before { background: linear-gradient(90deg, var(--b), color-mix(in srgb, var(--b) 40%, var(--v2))); }
+.panel-head { border-bottom: 1px dashed var(--border); }
+.car-panel .dot, .shaft-head .dot { box-shadow: 0 0 0 3px var(--glow); }
+
+/* buttons: pills that lift on hover */
+.btn, .seg button { font-family: var(--fun); font-weight: 500; border-radius: 999px; transition: transform .12s, box-shadow .12s, background .12s; }
+.btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 14px -8px var(--v1); }
+.btn.primary, .seg button.on, .wave-zoom .btn.on {
+  background: linear-gradient(135deg, #7c3aed, #db2777); color: #fff; border-color: transparent;
+}
+.btn.primary:hover { background: linear-gradient(135deg, #7c3aed, #db2777); filter: brightness(1.1); }
+.btn.on { border-color: var(--v1); color: var(--v1); }
+.seg { background: var(--fill); border: 1px solid var(--border); border-radius: 999px; padding: 3px; gap: 2px; }
+.seg button, .seg button + button { border: 0; background: transparent; border-radius: 999px; }
+.seg button:first-child, .seg button:last-child { border-radius: 999px; }
+input[type=range], input[type=checkbox] { accent-color: var(--v1); }
+
+/* building */
+.shaft-cell { background: linear-gradient(180deg, color-mix(in srgb, var(--shaft) 70%, var(--bg)), var(--shaft)); border-color: var(--border); }
+.floor:nth-child(odd) .shaft-cell { background: var(--shaft); }
+.floor:last-child { border-bottom: 3px solid var(--v1); }
+.floor-label { font-weight: 600; color: var(--v1); }
+.shaft-head em { border-radius: 999px; border-color: var(--border); background: var(--bg); font-weight: 600; }
+.cable { background: var(--edge); }
+.car { border-radius: 12px; box-shadow: 0 8px 18px -8px var(--c); }
+.car .door { background: linear-gradient(180deg, color-mix(in srgb, var(--c) 75%, #fff), var(--c)); }
+
+/* hall and cabin buttons: round, and they glow when lit */
+.hall { border-radius: 999px; border-color: var(--border); transition: transform .1s; }
+.hall:hover { transform: scale(1.08); }
+.key { border-radius: 50%; border-color: var(--border); transition: transform .1s; }
+.key:hover { transform: scale(1.08); }
+.hall.pend { box-shadow: 0 0 0 4px color-mix(in srgb, var(--hot) 22%, transparent); animation: pulse 1.4s ease-in-out infinite; }
+.hall.pend.own0 { box-shadow: 0 0 0 4px color-mix(in srgb, var(--a) 25%, transparent); }
+.hall.pend.own1 { box-shadow: 0 0 0 4px color-mix(in srgb, var(--b) 25%, transparent); }
+.car-panel.a .key.lit { box-shadow: 0 0 0 4px color-mix(in srgb, var(--a) 25%, transparent); }
+.car-panel.b .key.lit { box-shadow: 0 0 0 4px color-mix(in srgb, var(--b) 25%, transparent); }
+@keyframes pulse { 50% { transform: scale(1.07); } }
+
+/* state diagram */
+.fsm .node rect { rx: 10px; ry: 10px; stroke: var(--border); }
+.fsm .node text { font-family: var(--fun); font-weight: 600; }
+.car-panel.a .fsm .node.on rect { filter: drop-shadow(0 4px 6px color-mix(in srgb, var(--a) 45%, transparent)); }
+.car-panel.b .fsm .node.on rect { filter: drop-shadow(0 4px 6px color-mix(in srgb, var(--b) 45%, transparent)); }
+.timer-bar { height: 6px; border-radius: 999px; border: 0; }
+.timer-bar i { border-radius: 999px; }
+
+/* registers: little rounded tiles */
+.bit { margin: 1px; border-radius: 6px; border-color: var(--border); }
+.bit.one { background: var(--v1); border-color: var(--v1); }
+.decision {
+  border: 0; border-left: 4px solid var(--v1); border-radius: 10px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--v1) 9%, var(--bg)), var(--fill));
+}
+.badge { border-radius: 999px; padding: 1px 8px; background: color-mix(in srgb, var(--ok) 12%, transparent); }
+.badge.bad { background: color-mix(in srgb, var(--hot) 12%, transparent); }
+
+/* log and waveforms */
+.log li { border-radius: 6px; padding: 3px 6px; border-bottom: 0; }
+.log li:nth-child(odd) { background: var(--fill); }
+.wave-body, .wave-add { border-radius: 12px; }
 
 @media (max-width: 980px) {
   .layout { grid-template-columns: minmax(0, 1fr); padding: 16px; }

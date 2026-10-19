@@ -5,12 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Smart Elevator</title>
   <script>try { const t = localStorage.getItem('theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=JetBrains+Mono:wght@400;600&family=Nunito:wght@400;600;700&display=swap">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header class="top">
     <div class="brand">
-      <h1>Smart Elevator</h1>
+      <h1><span class="logo" aria-hidden="true">🛗</span><span class="grad">Smart Elevator</span></h1>
       <p>2 cars · 8 floors · cycle-accurate model of <code>rtl/elevator_coordinator.v</code></p>
     </div>
     <div class="controls">

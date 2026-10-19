@@ -15,7 +15,7 @@
   --cols: 44px 64px minmax(0, 1fr) minmax(0, 1fr);
   --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
-* { box-sizing: border-box; border-radius: 0; }
+* { box-sizing: border-box; }
 html, body { margin: 0; }
 body {
   background: var(--bg);
@@ -172,6 +172,16 @@ canvas#chart { width: 100%; display: block; }
 .log li { padding: 2px 0; border-bottom: 1px solid #eee; color: var(--text); }
 .log li .c { color: var(--muted); margin-right: 8px; }
 .log li .ca { color: var(--a); font-weight: 600; } .log li .cb { color: var(--b); font-weight: 600; }
+
+/* ---------- rounded corners ---------- */
+.panel { border-radius: 10px; }
+.btn, .hall, .key, .shaft-head em, .badge, .decision { border-radius: 6px; }
+.seg button:first-child { border-radius: 6px 0 0 6px; }
+.seg button:last-child { border-radius: 0 6px 6px 0; }
+.car { border-radius: 6px; }
+.shaft-head .dot, .car-panel .dot, .stop-mark { border-radius: 50%; }
+.timer-bar, .timer-bar i { border-radius: 2px; }
+.fsm .node rect { rx: 6px; ry: 6px; }
 
 @media (max-width: 980px) {
   .layout { grid-template-columns: minmax(0, 1fr); padding: 16px; }

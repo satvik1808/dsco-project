@@ -1,8 +1,8 @@
 :root {
   --bg: #ffffff;
   --text: #111111;
-  --muted: #666666;
-  --line: #cccccc;
+  --muted: #5c6370;
+  --line: #dde0e5;
   --dark: #111111;
   --fill: #f2f2f2;
   --a: #0057b8;
@@ -15,25 +15,30 @@
   --cols: 44px 64px minmax(0, 1fr) minmax(0, 1fr);
   --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --dark-hover: #333333;
-  --edge: #999999;
-  --bit-off: #bbbbbb;
-  --grid: #e5e5e5;
-  --log-line: #eeeeee;
+  --edge: #8a919c;
+  --bit-off: #9aa1ab;
+  --grid: #e5e7eb;
+  --log-line: #eceef1;
+  --page: #f3f4f6;
+  --border: #d3d7dd;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   color-scheme: light;
 }
 /* dark theme: follows the system unless the toggle picked light */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #15171a; --text: #e8e8e8; --muted: #9a9a9a; --line: #3a3d42; --dark: #e8e8e8; --fill: #23262b;
+    --bg: #1a1d22; --text: #e6e8eb; --muted: #a3a9b3; --line: #2f343b; --dark: #e6e8eb; --fill: #22262c;
     --a: #5aa2ff; --a-soft: #1c3350; --b: #ff8d3f; --b-soft: #4a2b16; --hot: #ff5c5c; --ok: #4cc26a;
-    --dark-hover: #c8c8c8; --edge: #6b6f76; --bit-off: #555a61; --grid: #2c2f34; --log-line: #2a2d32;
+    --dark-hover: #c8ccd2; --edge: #7a818b; --bit-off: #6c737d; --grid: #2a2e34; --log-line: #262a30;
+    --page: #0f1114; --border: #363c45;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #15171a; --text: #e8e8e8; --muted: #9a9a9a; --line: #3a3d42; --dark: #e8e8e8; --fill: #23262b;
+  --bg: #1a1d22; --text: #e6e8eb; --muted: #a3a9b3; --line: #2f343b; --dark: #e6e8eb; --fill: #22262c;
   --a: #5aa2ff; --a-soft: #1c3350; --b: #ff8d3f; --b-soft: #4a2b16; --hot: #ff5c5c; --ok: #4cc26a;
-  --dark-hover: #c8c8c8; --edge: #6b6f76; --bit-off: #555a61; --grid: #2c2f34; --log-line: #2a2d32;
+  --dark-hover: #c8ccd2; --edge: #7a818b; --bit-off: #6c737d; --grid: #2a2e34; --log-line: #262a30;
+    --page: #0f1114; --border: #363c45;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -196,6 +201,21 @@ canvas#chart { width: 100%; display: block; }
 .log li { padding: 2px 0; border-bottom: 1px solid var(--log-line); color: var(--text); }
 .log li .c { color: var(--muted); margin-right: 8px; }
 .log li .ca { color: var(--a); font-weight: 600; } .log li .cb { color: var(--b); font-weight: 600; }
+
+/* ---------- readability ---------- */
+body { font: 15px/1.5 var(--sans); background: var(--page); }
+h1 { font-size: 20px; }
+h2 { font-size: 12.5px; letter-spacing: .06em; }
+.brand p, .meta, .hint, .decision { font-size: 13px; }
+.top { border-bottom-color: var(--border); }
+.panel { border-color: var(--border); padding: 16px 18px; box-shadow: 0 1px 2px rgba(0, 0, 0, .05); }
+.btn, .seg button { font-size: 14px; padding: 6px 14px; border-color: var(--border); }
+.btn.primary, .seg button.on { border-color: var(--dark); }
+.hall, .key, .shaft-head em { border-color: var(--edge); }
+.regs, .sigs, .log, .key, .hall, .shaft-head em, .floor-label, .car .inside, .meta b, .speed span { font-family: var(--mono); }
+.regs, .sigs, .log { font-size: 13px; }
+.fsm .node rect { stroke: var(--edge); }
+.fsm .node text { font-size: 11px; }
 
 /* ---------- rounded corners ---------- */
 .panel { border-radius: 10px; }

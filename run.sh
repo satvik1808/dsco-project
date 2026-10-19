@@ -2,6 +2,8 @@
 # Build + simulate the Verilog, then cross-check the website's JS model against it.
 set -e
 cd "$(dirname "$0")"
+# Windows: default install locations of Node.js and Icarus Verilog
+PATH="$PATH:/c/Program Files/nodejs:/c/iverilog/bin"
 mkdir -p build
 
 node scripts/gen_stimulus.js "${1:-4000}" "${2:-2026}"

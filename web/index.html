@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Elevator Coordinator RTL</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <h1>Elevator Coordinator</h1>
+      <p>2 cars · 8 floors · cycle-accurate model of <code>rtl/elevator_coordinator.v</code></p>
+    </div>
+    <div class="controls">
+      <div class="seg" role="tablist" aria-label="Simulation source">
+        <button id="modeLive" class="on" title="Interactive: the JS port of the RTL, driven by your button presses">Live RTL</button>
+        <button id="modeReplay" title="Play back the trace recorded from the Icarus Verilog simulation">Verilog replay</button>
+      </div>
+      <button id="play" class="btn primary">Pause</button>
+      <button id="step" class="btn" title="Advance one clock edge">Step clk</button>
+      <button id="reset" class="btn">Reset</button>
+      <label class="speed">clk <input id="speed" type="range" min="1" max="60" value="12"> <span id="speedVal">12 Hz</span></label>
+      <label class="toggle" id="trafficWrap"><input id="traffic" type="checkbox" checked> random traffic</label>
+    </div>
+  </header>
+
+  <main class="layout">
+    <!-- Building ------------------------------------------------------- -->
+    <section class="panel building-panel">
+      <div class="panel-head">
+        <h2>Building</h2>
+        <div class="meta"><span>cycle</span> <b id="cycle">0</b> <span id="matchBadge" class="badge" hidden></span></div>
+      </div>
+      <div class="building" id="building">
+        <div class="shaft-heads">
+          <div></div><div></div>
+          <div class="shaft-head a"><span class="dot"></span>Car A <em id="indA">0</em></div>
+          <div class="shaft-head b"><span class="dot"></span>Car B <em id="indB">0</em></div>
+        </div>
+        <div class="floors" id="floors"></div>
+      </div>
+      <p class="hint">Press a hall button ▲▼ or a cabin button on the right. The ring colour shows which car the dispatcher assigned the call to.</p>
+    </section>
+
+    <!-- Cars ----------------------------------------------------------- -->
+    <section class="side">
+      <div class="cars">
+        <div class="panel car-panel a" id="carPanel0"></div>
+        <div class="panel car-panel b" id="carPanel1"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h2>Dispatcher registers</h2><span class="meta">bit 7 … bit 0</span></div>
+        <div class="regs" id="regs"></div>
+        <div class="decision" id="decision">Waiting for a hall call…</div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h2>Position vs. time</h2><span class="meta">last 400 cycles</span></div>
+        <canvas id="chart" height="150"></canvas>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h2>Event log</h2><span class="meta" id="stats"></span></div>
+        <ol class="log" id="log"></ol>
+      </div>
+    </section>
+  </main>
+
+  <script src="elevator_rtl.js"></script>
+  <script src="verilog_trace.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

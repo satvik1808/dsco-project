@@ -17,66 +17,64 @@ The full project report covers the design, every digital-electronics concept use
 ## Run it
 
 ```sh
-./run.sh            # stimulus → iverilog sim → self-checks → JS-vs-Verilog cross-check
+./run.sh            # stimulus → iverilog sim → checks → JS-vs-Verilog cross-check
 open web/index.html # the website (works straight from the file system)
 ```
 
 `./run.sh 8000 42` sets the simulation to 8000 cycles with random seed 42.
 Waveforms are written to `build/elevator.vcd`; open them with GTKWave.
 
+## Learn the Verilog
+
+**Start with [verilog.md](verilog.md).** It explains every file line by line, and it
+uses only what the DSCO syllabus teaches (each part says which lecture it comes from).
+
 ## Files
 
-| Path | What it is |
-|---|---|
-| `rtl/elevator_car.v` | One car: FSM + floor register, tick timer, cabin-call register |
-| `rtl/hall_call_dispatcher.v` | The coordinator: latches hall calls and assigns each to the cheapest car |
-| `rtl/elevator_coordinator.v` | Top level: dispatcher + 2 cars |
-| `tb/tb_elevator_coordinator.v` | Testbench: stimulus from file, trace + VCD, safety and liveness checks |
-| `scripts/gen_stimulus.js` | Seeded random button presses → `build/stim.hex` |
-| `scripts/verify.js` | Runs the JS model on the same stimulus and compares every register every cycle |
-| `scripts/vcd2js.js` | Converts `build/elevator.vcd` for the website and checks every internal net of the JS model against it |
-| `web/elevator_rtl.js` | JS port of the RTL (1:1 with the Verilog equations) |
-| `web/waves.js` | GTKWave-style waveform viewer |
-| `web/sound.js` | Button beeps, door chime, music while the cars move |
-| `docs/` | Project report (Markdown + PDF) and images |
-| `web/index.html`, `app.js`, `style.css` | The visualisation |
+| Path | What it is | Syllabus |
+|---|---|---|
+| `rtl/decoder3to8.v` | 3-to-8 decoder: floor number → one-hot floor vector | L15, L18 |
+| `rtl/floor_masks.v` | Truth table (case): which floors are above / below the car | L17 |
+| `rtl/priority_encoder8.v` | Priority encoder (casex): lowest waiting call | L15, L17 |
+| `rtl/distance.v` | Comparator + subtractor: `|a − b|` | L8, L12 |
+| `rtl/elevator_car.v` | One car: state machine + floor, timer and cabin-call registers | L27–31 |
+| `rtl/hall_call_dispatcher.v` | The coordinator: gives each hall call to the nearer car | L12–15, L26–28 |
+| `rtl/elevator_coordinator.v` | Top level: connects the dispatcher and the 2 cars | L2, L18 |
+| `tb/tb_elevator_coordinator.v` | Testbench in the lab style (`include`, clock with `forever`, `$dumpvars`) | Lab 2, L27 |
+| `scripts/gen_stimulus.js` | Random button presses → `build/stimulus.v` (for the testbench) and `build/stim.hex` | |
+| `scripts/verify.js` | Checks every hall call is answered and the JS model matches all 16 registers every cycle | |
+| `scripts/vcd2js.js` | Converts `build/elevator.vcd` for the website and checks every internal signal against the JS model | |
+| `web/elevator_rtl.js` | JS copy of the Verilog (1:1), runs the website | |
+| `web/waves.js`, `web/sound.js` | Waveform viewer; button beeps, door chime, music | |
+| `web/index.html`, `app.js`, `style.css` | The visualisation | |
 
-## Design
+## Design (in short)
 
-**Car FSM** (`elevator_car.v`), 1 clock = 1 tick:
+**Each car** (`elevator_car.v`) is a 4-state machine: `IDLE`, `MOVE_UP`, `MOVE_DN`, `DOOR`.
 
-| State | Behaviour |
-|---|---|
-| `IDLE` | Opens the door if there is a request at this floor; otherwise starts moving toward requests |
-| `MOVE_UP` / `MOVE_DN` | Takes `TRAVEL_TICKS` (8) per floor; at each floor checks whether to stop |
-| `DOOR` | Stays open `DOOR_TICKS` (10); the timer restarts if a new call is answered at this floor |
+1. If there is a target at this floor, stop and open the door (10 clock cycles).
+2. Keep going the same way while there are targets that way.
+3. Otherwise turn around if there are targets the other way.
+4. No targets: wait in `IDLE`.
 
-The cars use **SCAN**: a car keeps its direction while there is still work
-ahead (`next_dir`). It stops for a cabin call, for a hall call in its
-direction of travel, or for any hall call when nothing is left beyond it.
+Moving one floor takes 8 clock cycles. A car's targets are its cabin buttons plus the hall calls the dispatcher gave it.
 
-**Dispatcher** (`hall_call_dispatcher.v`):
+**The dispatcher** (`hall_call_dispatcher.v`) keeps `pend`, `asgd` and `owner` registers for the UP and DOWN buttons.
+Each cycle a priority encoder picks one waiting call, and it goes to the **nearer car** (tie → Car A).
+When that car opens its door at the floor, the call is cleared.
 
-- Hall calls are held in `*_pend` registers.
-- Each cycle a priority encoder picks one unassigned call and assigns it to the cheaper car:
-
-  `cost = |car floor − call floor| + load + (car heading away ? 2N : 0)`
-
-  `load` is the number of stops the car already has. Ties go to car A.
-- `*_asgd` and `*_owner` record the assignment. A car's `serve_up` / `serve_dn` strobes clear the call.
+This is deliberately simple rather than optimal.
 
 ## Verification
 
-- **Testbench checks:** a door is never open outside `DOOR`, floors stay in range, and no hall call waits more than 600 cycles (starvation check).
-- **Co-simulation:**
-  - `scripts/verify.js` steps the JS model on the same stimulus and compares all 16 registers on every cycle against the Verilog trace. Replay mode in the website repeats this check live (the "Verilog = JS ✓" badge).
-  - `scripts/vcd2js.js` does the same for 145 named signals in the VCD, including combinational nets such as `next_dir`, `stop_up`, `cost0` and `pick_floor`.
+- `scripts/verify.js`: no hall call waits more than 600 cycles, and the JS model matches all 16 registers on every cycle. Replay mode in the website repeats this check live (the "Verilog = JS ✓" badge).
+- `scripts/vcd2js.js`: the same check for every named signal in the VCD (over 150), including internal ones like `call_above`, `next_dir`, `pick_floor` and `dist0`.
 
 ## Website
 
 - **Live RTL:** click hall ▲▼ or cabin buttons, or let random traffic run.
-- **Verilog replay:** plays back `build/trace_verilog.txt`. Open `web/index.html#replay@1200` to jump to cycle 1200.
-- **Views:** FSM diagrams with the last transition highlighted, dispatcher register bits, the cost breakdown for each assignment, a position-vs-time chart, and an event log.
+- **Verilog replay:** plays back the Icarus Verilog simulation (`build/elevator.vcd`). Open `web/index.html#replay@1200` to jump to cycle 1200.
+- **Views:** FSM diagrams with the last transition highlighted, dispatcher register bits, the distance of each car for every assignment, a position-vs-time chart, and an event log.
 - **Waveforms:** a GTKWave-style viewer under the animation.
   - In replay mode it shows the real `build/elevator.vcd`; in live mode it records the same signals, with the same names, from the JS model.
   - Presets: Top I/O, Car A, Car B, Dispatcher. Type in the search box to add any other signal.

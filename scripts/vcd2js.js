@@ -1,79 +1,22 @@
 // Converts build/elevator.vcd (dumped by the Icarus testbench) into
-// web/verilog_waves.js for the website's waveform viewer, then checks that every
-// signal the JS model produces matches the VCD on every clock cycle.
+// web/verilog_waves.js for the website's waveform viewer, and checks that
+// every signal the JS model produces matches the VCD on every clock cycle.
 const fs = require('fs');
 const path = require('path');
 const ElevatorRTL = require('../web/elevator_rtl.js');
+const { read, T, unpack } = require('./vcd.js');
 
 const root = path.join(__dirname, '..');
-const text = fs.readFileSync(path.join(root, 'build/elevator.vcd'), 'utf8');
-const tokens = text.split(/\s+/);
-
-// ---------------- parse ----------------
-const SKIP = new Set(['fd', 'k', 'i']);        // testbench/loop bookkeeping
-const scopes = [];
-const vars = [];                               // { path, width, id }
-const byId = new Map();                        // id -> { t: [], v: [] }
-let scale = 1;                                 // VCD time unit -> ns
-let p = 0;
-for (; p < tokens.length; p++) {
-  const tk = tokens[p];
-  if (tk === '$timescale') {
-    const m = tokens.slice(p + 1, p + 4).join('').match(/^(\d+)(s|ms|us|ns|ps|fs)/);
-    scale = +m[1] * { s: 1e9, ms: 1e6, us: 1e3, ns: 1, ps: 1e-3, fs: 1e-6 }[m[2]];
-  } else if (tk === '$scope') {
-    scopes.push({ kind: tokens[p + 1], name: tokens[p + 2] });
-    p += 3;
-  } else if (tk === '$upscope') {
-    scopes.pop(); p++;
-  } else if (tk === '$var') {
-    const [type, width, id, ref] = tokens.slice(p + 1, p + 5);
-    p += 5;
-    while (tokens[p] !== '$end') p++;
-    const inFunc = scopes.some(s => s.kind === 'function' || s.kind === 'task');
-    if (type === 'parameter' || inFunc || SKIP.has(ref)) continue;
-    const names = scopes.map(s => s.name);
-    names[0] = 'tb';
-    vars.push({ path: names.concat(ref).join('.'), width: +width, id });
-    if (!byId.has(id)) byId.set(id, { t: [], v: [] });
-  } else if (tk === '$enddefinitions') { p++; break; }
-}
-
-let now = 0;
-function set(id, val) {
-  const ch = byId.get(id);
-  if (!ch) return;
-  const v = /[xz]/i.test(val) ? -1 : parseInt(val, 2);
-  if (ch.v.length && ch.v[ch.v.length - 1] === v) return;
-  if (ch.t.length && ch.t[ch.t.length - 1] === now) { ch.v[ch.v.length - 1] = v; return; }
-  ch.t.push(now); ch.v.push(v);
-}
-for (; p < tokens.length; p++) {
-  const tk = tokens[p];
-  if (!tk || tk[0] === '$') continue;
-  const c = tk[0];
-  if (c === '#') now = +tk.slice(1) * scale;
-  else if (c === 'b' || c === 'B' || c === 'r' || c === 'R') { set(tokens[p + 1], tk.slice(1)); p++; }
-  else if ('01xXzZ'.includes(c)) set(tk.slice(1), c);
-}
-const endTime = now;
+const { vars, byId, chanOf, endTime, valueAt } = read(path.join(root, 'build/elevator.vcd'));
+const stim = fs.readFileSync(path.join(root, 'build/stim.hex'), 'utf8').trim().split('\n').map(h => parseInt(h, 16));
 
 // ---------------- check the JS model against the VCD ----------------
-const valueAt = (ch, t) => {           // last change at or before t
-  let lo = 0, hi = ch.t.length - 1, ans = -1;
-  while (lo <= hi) { const m = (lo + hi) >> 1; if (ch.t[m] <= t) { ans = m; lo = m + 1; } else hi = m - 1; }
-  return ans < 0 ? -1 : ch.v[ans];
-};
-const chanOf = Object.fromEntries(vars.map(v => [v.path, byId.get(v.id)]));
-const stim = fs.readFileSync(path.join(root, 'build/stim.hex'), 'utf8').trim().split('\n').map(h => parseInt(h, 16));
-const unpack = w => ({ hall_up: (w >>> 24) & 255, hall_dn: (w >>> 16) & 255, car0: (w >>> 8) & 255, car1: w & 255 });
-const T = k => 10 * k + 15;            // posedge (ns) that produces register state #k
-
 const m = ElevatorRTL.create();
 const checked = new Set();
 let bad = 0;
 for (let k = 1; k <= stim.length && T(k) < endTime; k++) {
   m.step(unpack(stim[k - 1]));
+  // combinational nets settle just after the inputs change; registers just after the edge
   const groups = [[m.last.sig, T(k - 1) + 1.5], [m.regSignals(m.regs), T(k) + 0.5]];
   for (const [sigs, t] of groups) {
     for (const [name, val] of Object.entries(sigs)) {
@@ -89,7 +32,9 @@ for (let k = 1; k <= stim.length && T(k) < endTime; k++) {
   }
 }
 if (bad) { console.log(`FAIL: ${bad} signal mismatches between VCD and JS model`); process.exit(1); }
+const unchecked = vars.filter(v => !checked.has(v.path) && !/\.(clk|rst)$/.test(v.path)).map(v => v.path);
 console.log(`PASS: ${checked.size} named signals match the VCD on every cycle`);
+if (unchecked.length) console.log(`  (not modelled in JS: ${unchecked.join(', ')})`);
 
 // ---------------- write web/verilog_waves.js ----------------
 const ids = [...byId.keys()];

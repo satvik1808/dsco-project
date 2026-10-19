@@ -1,129 +1,252 @@
-`timescale 1ns/1ps
 // ============================================================================
-// elevator_car.v
-// One elevator car: FSM (IDLE / MOVE_UP / MOVE_DN / DOOR) + datapath
-// (floor register, tick timer, cabin-call register).
+// elevator_car.v  -  ONE elevator car
 //
-// The car stops at a floor when it has a cabin call there, or a hall call
-// assigned to it that matches its direction of travel (or any hall call there
-// when nothing is left further on in its direction - the SCAN/"elevator"
-// algorithm).
+// Syllabus: Lectures 29-30 (design of synchronous sequential circuits, i.e.
+// a state machine), Lectures 27-28 (registers, non-blocking <=, synchronous
+// reset), Lecture 31 (counters), Lectures 16-17 (always, if-else, case).
+//
+// ---------------------------------------------------------------------------
+// WHAT IT DOES
+// ---------------------------------------------------------------------------
+// The car keeps a list of floors it has to visit ("targets"). That list is
+// the cabin buttons pressed inside the car plus the hall calls the dispatcher
+// gave to this car. The car then follows four simple rules:
+//
+//   1. If there is a target at the floor I am on, stop and open the door.
+//   2. Keep going in the same direction while there are targets that way.
+//   3. Otherwise turn around if there are targets the other way.
+//   4. If there are no targets at all, wait (IDLE).
+//
+// ---------------------------------------------------------------------------
+// STATE DIAGRAM  (state register: 2 bits)
+// ---------------------------------------------------------------------------
+//
+//                   call here
+//         +--------------------------------+
+//         |                                v
+//      +------+  call above   +---------+  call here   +------+
+//      | IDLE |-------------->| MOVE_UP |------------->|      |
+//      |  00  |               |   01    |              | DOOR |
+//      |      |  call below   +---------+              |  11  |
+//      |      |-------------->| MOVE_DN |------------->|      |
+//      +------+               |   10    |  call here   +------+
+//         ^                   +---------+                 |
+//         |       door timer done and nothing left        |
+//         +-----------------------------------------------+
+//         (when the door timer is done the car goes to MOVE_UP, MOVE_DN
+//          or IDLE, whichever 'next_dir' says)
+//
+// ---------------------------------------------------------------------------
+// TIMING
+// ---------------------------------------------------------------------------
+//   * Travelling one floor takes TRAVEL_TICKS clock cycles.
+//   * The door stays open for DOOR_TICKS clock cycles.
+//   Both are measured by the 'timer' register, a simple counter that counts
+//   0, 1, 2, ... and is cleared back to 0.
 // ============================================================================
-module elevator_car #(
-    parameter N            = 8,    // number of floors
-    parameter FW           = 3,    // floor index width (log2 N)
-    parameter TRAVEL_TICKS = 8,    // clock cycles needed to travel one floor
-    parameter DOOR_TICKS   = 10    // clock cycles the door stays open
-)(
-    input  wire          clk,
-    input  wire          rst,
-    input  wire [N-1:0]  car_btn,      // cabin buttons (1-cycle pulses)
-    input  wire [N-1:0]  hall_up_asg,  // hall UP calls assigned to this car
-    input  wire [N-1:0]  hall_dn_asg,  // hall DOWN calls assigned to this car
+module elevator_car (clk, rst, car_btn, hall_up_asg, hall_dn_asg,
+                     floor, state, dir, timer, car_calls,
+                     next_dir, door_open, serve_up, serve_dn);
 
-    output reg  [FW-1:0] floor,        // last floor reached
-    output reg  [1:0]    state,        // FSM state
-    output reg  [1:0]    dir,          // committed direction of travel
-    output reg  [4:0]    timer,        // travel / door tick counter
-    output reg  [N-1:0]  car_calls,    // latched cabin calls
-    output wire [N-1:0]  serve_up,     // hall UP call served this cycle
-    output wire [N-1:0]  serve_dn,     // hall DOWN call served this cycle
-    output wire [1:0]    next_dir,     // direction the car will take next
-    output wire          door_open
-);
-    // FSM states
-    localparam S_IDLE = 2'd0, S_UP = 2'd1, S_DN = 2'd2, S_DOOR = 2'd3;
-    // directions
-    localparam D_NONE = 2'd0, D_UP = 2'd1, D_DN = 2'd2;
+    // ---------------- constants ----------------
+    parameter TRAVEL_TICKS = 8;     // clock cycles to move one floor
+    parameter DOOR_TICKS   = 10;    // clock cycles the door stays open
 
-    // ------------------------------------------------------------------
-    // Combinational request decoding
-    // ------------------------------------------------------------------
-    wire [N-1:0] here       = {{(N-1){1'b0}}, 1'b1} << floor;  // one-hot floor
-    wire [N-1:0] targets    = car_calls | hall_up_asg | hall_dn_asg;
-    wire [N-1:0] mask_below = here - 1'b1;                     // floors < current
-    wire [N-1:0] mask_above = ~(mask_below | here);            // floors > current
+    // state codes (the 4 states of the state machine)
+    parameter IDLE    = 2'b00;
+    parameter MOVE_UP = 2'b01;
+    parameter MOVE_DN = 2'b10;
+    parameter DOOR    = 2'b11;
 
-    wire any_above = |(targets & mask_above);
-    wire any_below = |(targets & mask_below);
-    wire any_here  = |(targets & here);
+    // direction codes
+    parameter NONE = 2'b00;
+    parameter UP   = 2'b01;
+    parameter DN   = 2'b10;
 
-    // A hall call at this floor is demand in its own direction: the waiting
-    // passenger will ride that way (otherwise a car arriving with nothing
-    // further on would turn around and starve it).
-    wire want_up = any_above | (|(hall_up_asg & here));
-    wire want_dn = any_below | (|(hall_dn_asg & here));
+    // ---------------- ports ----------------
+    input        clk;            // clock
+    input        rst;            // synchronous reset, active high
+    input  [7:0] car_btn;        // cabin buttons (bit k = floor k), 1 for one clock
+    input  [7:0] hall_up_asg;    // hall UP   calls the dispatcher gave to this car
+    input  [7:0] hall_dn_asg;    // hall DOWN calls the dispatcher gave to this car
 
-    // keep going the same way while there is work that way (SCAN)
-    assign next_dir = (dir == D_UP && want_up) ? D_UP :
-                      (dir == D_DN && want_dn) ? D_DN :
-                      want_up                  ? D_UP :
-                      want_dn                  ? D_DN : D_NONE;
+    output reg [2:0] floor;      // floor the car is at (or last passed)
+    output reg [1:0] state;      // IDLE / MOVE_UP / MOVE_DN / DOOR
+    output reg [1:0] dir;        // direction the car is travelling in
+    output reg [3:0] timer;      // counts clock cycles while moving / door open
+    output reg [7:0] car_calls;  // cabin buttons pressed and not yet served
 
-    wire in_door = (state == S_DOOR);
-    assign door_open = in_door;
+    output reg [1:0] next_dir;   // where the car will go next (combinational)
+    output       door_open;      // 1 while the door is open
+    output [7:0] serve_up;       // hall UP   call answered at this floor right now
+    output [7:0] serve_dn;       // hall DOWN call answered at this floor right now
 
-    // While the door is open, clear the calls this stop satisfies.
-    // A hall call is only answered if the car is leaving in that direction.
-    assign serve_up = (in_door && next_dir != D_DN) ? (hall_up_asg & here) : {N{1'b0}};
-    assign serve_dn = (in_door && next_dir != D_UP) ? (hall_dn_asg & here) : {N{1'b0}};
-    wire   serve_car = in_door && |((car_calls | car_btn) & here);
-    wire   serving   = serve_car | (|serve_up) | (|serve_dn);
+    // ---------------- internal wires ----------------
+    wire [7:0] here;             // one-hot: the floor the car is on
+    wire [7:0] above;            // mask of floors above the car
+    wire [7:0] below;            // mask of floors below the car
+    wire [7:0] targets;          // every floor this car must visit
+    wire       call_here;        // is there a target on this floor?
+    wire       call_above;       // is there a target above?
+    wire       call_below;       // is there a target below?
 
-    // Stop decision when passing a floor
-    wire stop_up = (|(here & (car_calls | hall_up_asg))) | ((|(here & hall_dn_asg)) & ~any_above);
-    wire stop_dn = (|(here & (car_calls | hall_dn_asg))) | ((|(here & hall_up_asg)) & ~any_below);
+    // ===================================================================
+    // PART 1: combinational logic (no clock)
+    // ===================================================================
 
-    // ------------------------------------------------------------------
-    // Sequential logic
-    // ------------------------------------------------------------------
-    always @(posedge clk) begin
-        if (rst) begin
-            floor     <= {FW{1'b0}};
-            state     <= S_IDLE;
-            dir       <= D_NONE;
-            timer     <= 5'd0;
-            car_calls <= {N{1'b0}};
-        end else begin
-            // latch new cabin calls, clear the one at the current floor while door is open
-            car_calls <= (car_calls | car_btn) & ~(in_door ? here : {N{1'b0}});
+    // floor number -> one-hot floor vector (3-to-8 decoder, always enabled)
+    decoder3to8 dec_here (1'b1, floor, here);
 
-            case (state)
-            S_IDLE: begin
-                timer <= 5'd0;
-                if (any_here)       state <= S_DOOR;
-                else if (any_above) begin state <= S_UP; dir <= D_UP; end
-                else if (any_below) begin state <= S_DN; dir <= D_DN; end
-                else                dir <= D_NONE;
-            end
+    // which floors are above / below the car (lookup table)
+    floor_masks masks (floor, above, below);
 
-            S_UP: begin
-                if (timer == 5'd0 && stop_up)          state <= S_DOOR;
-                else if (timer == 5'd0 && !any_above)  begin state <= S_IDLE; dir <= D_NONE; end
-                else if (timer == TRAVEL_TICKS - 1)    begin floor <= floor + 1'b1; timer <= 5'd0; end
-                else                                   timer <= timer + 1'b1;
-            end
+    // all the floors this car has to visit
+    assign targets = car_calls | hall_up_asg | hall_dn_asg;
 
-            S_DN: begin
-                if (timer == 5'd0 && stop_dn)          state <= S_DOOR;
-                else if (timer == 5'd0 && !any_below)  begin state <= S_IDLE; dir <= D_NONE; end
-                else if (timer == TRAVEL_TICKS - 1)    begin floor <= floor - 1'b1; timer <= 5'd0; end
-                else                                   timer <= timer + 1'b1;
-            end
+    // Reduction OR ( |vector ) gives 1 if ANY bit of the vector is 1.
+    assign call_here  = |(targets & here);
+    assign call_above = |(targets & above);
+    assign call_below = |(targets & below);
 
-            S_DOOR: begin
-                if (serving)                         timer <= 5'd0;  // someone new got on: hold door
-                else if (timer == DOOR_TICKS - 1) begin
-                    timer <= 5'd0;
-                    case (next_dir)
-                        D_UP:    begin state <= S_UP;   dir <= D_UP;   end
-                        D_DN:    begin state <= S_DN;   dir <= D_DN;   end
-                        default: begin state <= S_IDLE; dir <= D_NONE; end
-                    endcase
-                end
-                else                                 timer <= timer + 1'b1;
-            end
-            endcase
+    // Next direction: keep going the same way while there is work that way,
+    // otherwise take whichever way has work, otherwise none.
+    always @(dir or call_above or call_below)
+    begin
+        if (dir == UP && call_above)
+            next_dir = UP;
+        else if (dir == DN && call_below)
+            next_dir = DN;
+        else if (call_above)
+            next_dir = UP;
+        else if (call_below)
+            next_dir = DN;
+        else
+            next_dir = NONE;
+    end
+
+    // The door is open exactly when the state machine is in DOOR.
+    assign door_open = (state == DOOR);
+
+    // While the door is open, every hall call of this car at this floor is
+    // answered. The dispatcher uses these to switch the hall lamps off.
+    assign serve_up = door_open ? (hall_up_asg & here) : 8'b00000000;
+    assign serve_dn = door_open ? (hall_dn_asg & here) : 8'b00000000;
+
+    // ===================================================================
+    // PART 2: cabin-call register (8 flip-flops, one per floor)
+    // ===================================================================
+    // A pressed button sets its bit (OR). When the door opens on a floor, that
+    // floor's bit is cleared (AND with NOT here).
+    always @(posedge clk)
+    begin
+        if (rst)
+            car_calls <= 8'b00000000;
+        else if (state == DOOR)
+            car_calls <= (car_calls | car_btn) & ~here;
+        else
+            car_calls <= car_calls | car_btn;
+    end
+
+    // ===================================================================
+    // PART 3: the state machine (state, floor, dir and timer registers)
+    // ===================================================================
+    always @(posedge clk)
+    begin
+        if (rst)
+        begin
+            state <= IDLE;
+            floor <= 0;
+            dir   <= NONE;
+            timer <= 0;
         end
+        else
+            case (state)
+
+            // ---------- waiting for something to do ----------
+            IDLE:
+            begin
+                timer <= 0;
+                if (call_here)
+                    state <= DOOR;                          // rule 1
+                else if (call_above)
+                begin
+                    state <= MOVE_UP;
+                    dir   <= UP;
+                end
+                else if (call_below)
+                begin
+                    state <= MOVE_DN;
+                    dir   <= DN;
+                end
+                else
+                    dir <= NONE;                            // rule 4
+            end
+
+            // ---------- travelling up ----------
+            // timer = 0 means the car is exactly at a floor.
+            MOVE_UP:
+            begin
+                if (timer == 0 && call_here)
+                    state <= DOOR;                          // rule 1: stop here
+                else if (timer == 0 && !call_above)
+                begin
+                    state <= IDLE;                          // safety: nothing above
+                    dir   <= NONE;
+                end
+                else if (timer == TRAVEL_TICKS - 1)
+                begin
+                    floor <= floor + 1;                     // reached the next floor
+                    timer <= 0;
+                end
+                else
+                    timer <= timer + 1;                     // still between floors
+            end
+
+            // ---------- travelling down (mirror of MOVE_UP) ----------
+            MOVE_DN:
+            begin
+                if (timer == 0 && call_here)
+                    state <= DOOR;
+                else if (timer == 0 && !call_below)
+                begin
+                    state <= IDLE;
+                    dir   <= NONE;
+                end
+                else if (timer == TRAVEL_TICKS - 1)
+                begin
+                    floor <= floor - 1;
+                    timer <= 0;
+                end
+                else
+                    timer <= timer + 1;
+            end
+
+            // ---------- door open ----------
+            DOOR:
+            begin
+                if (timer == DOOR_TICKS - 1)
+                begin
+                    timer <= 0;                             // door closes
+                    if (next_dir == UP)                     // rules 2 and 3
+                    begin
+                        state <= MOVE_UP;
+                        dir   <= UP;
+                    end
+                    else if (next_dir == DN)
+                    begin
+                        state <= MOVE_DN;
+                        dir   <= DN;
+                    end
+                    else
+                    begin
+                        state <= IDLE;
+                        dir   <= NONE;
+                    end
+                end
+                else
+                    timer <= timer + 1;
+            end
+
+            endcase
     end
 endmodule

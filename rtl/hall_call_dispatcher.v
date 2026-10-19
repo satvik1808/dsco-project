@@ -1,125 +1,157 @@
-`timescale 1ns/1ps
 // ============================================================================
-// hall_call_dispatcher.v
-// The "coordinator": latches hall (landing) calls and assigns each one to the
-// car with the lowest estimated cost. One unassigned call is assigned per
-// clock cycle (lowest UP call first, then lowest DOWN call).
+// hall_call_dispatcher.v  -  the COORDINATOR: decides which car answers
+//                             each hall (landing) call
 //
-//   cost = distance + load + (car not heading towards the call ? 2N : 0)
+// Syllabus: Lecture 15 (priority encoder, decoder), Lecture 12 (comparator),
+// Lectures 13-14 (multiplexer, as the ?: operator), Lectures 26-28 (registers).
 //
-//   distance : |car floor - call floor|
-//   load     : number of floors the car already has to stop at
-// Ties go to car 0.
+// ---------------------------------------------------------------------------
+// WHAT IT DOES
+// ---------------------------------------------------------------------------
+// Every floor has an UP button and a DOWN button. For each direction the
+// dispatcher keeps three 8-bit registers (bit k = floor k):
+//
+//      pend   1 = someone pressed this button and is still waiting
+//      asgd   1 = this call has already been given to a car
+//      owner  which car got it: 0 = Car A (car 0), 1 = Car B (car 1)
+//
+// Every clock cycle it does this:
+//   1. New button presses set their 'pend' bit.
+//   2. A priority encoder finds the lowest call that is waiting but not yet
+//      given to a car (UP calls first, then DOWN calls).
+//   3. It works out how far each car is from that floor.
+//   4. The call goes to the NEARER car (if both are equally far: Car A).
+//   5. When a car opens its door at the floor, the call is cleared.
+//
+// Only one call is handed out per clock cycle. That is plenty: a car needs
+// 8 clock cycles just to move one floor.
+//
+// ---------------------------------------------------------------------------
+// BLOCK DIAGRAM
+// ---------------------------------------------------------------------------
+//
+//   up_pend & ~up_asgd --> [priority encoder] --up_floor--+
+//                                                         |-- mux --> pick_floor
+//   dn_pend & ~dn_asgd --> [priority encoder] --dn_floor--+     |
+//                                                               v
+//   floor0 ------------------------------> [distance] --dist0--> [ comparator ]
+//   floor1 ------------------------------> [distance] --dist1--> [dist1<dist0?] --> pick_car1
+//
+//   pick_floor --> [3-to-8 decoder] --> pick_vec --> new_up / new_dn
+//                                                   (sets asgd and owner bits)
 // ============================================================================
-module hall_call_dispatcher #(
-    parameter N  = 8,
-    parameter FW = 3
-)(
-    input  wire          clk,
-    input  wire          rst,
-    input  wire [N-1:0]  hall_up_btn,   // landing UP buttons (pulses)
-    input  wire [N-1:0]  hall_dn_btn,   // landing DOWN buttons (pulses)
+module hall_call_dispatcher (clk, rst, hall_up_btn, hall_dn_btn,
+                             floor0, floor1,
+                             serve_up0, serve_dn0, serve_up1, serve_dn1,
+                             up_pend, up_asgd, up_owner,
+                             dn_pend, dn_asgd, dn_owner,
+                             up_asg0, dn_asg0, up_asg1, dn_asg1);
 
-    // status of the two cars
-    input  wire [FW-1:0] floor0,  floor1,
-    input  wire [1:0]    state0,  state1,
-    input  wire [1:0]    dir0,    dir1,
-    input  wire [1:0]    ndir0,   ndir1,
-    input  wire [N-1:0]  calls0,  calls1,
-    input  wire [N-1:0]  serve_up0, serve_dn0, serve_up1, serve_dn1,
+    // ---------------- ports ----------------
+    input        clk, rst;
+    input  [7:0] hall_up_btn;    // hall UP   buttons (1 for one clock when pressed)
+    input  [7:0] hall_dn_btn;    // hall DOWN buttons
+    input  [2:0] floor0;         // where Car A is
+    input  [2:0] floor1;         // where Car B is
+    input  [7:0] serve_up0, serve_dn0;   // calls Car A answered this cycle
+    input  [7:0] serve_up1, serve_dn1;   // calls Car B answered this cycle
 
-    // call registers
-    output reg  [N-1:0]  up_pend,  up_asgd,  up_owner,   // owner: 0 = car0, 1 = car1
-    output reg  [N-1:0]  dn_pend,  dn_asgd,  dn_owner,
+    output reg [7:0] up_pend, up_asgd, up_owner;   // UP call registers
+    output reg [7:0] dn_pend, dn_asgd, dn_owner;   // DOWN call registers
 
-    // per-car assignment vectors
-    output wire [N-1:0]  up_asg0, dn_asg0, up_asg1, dn_asg1
-);
-    localparam S_DOOR = 2'd3;
-    localparam D_NONE = 2'd0, D_UP = 2'd1, D_DN = 2'd2;
+    output [7:0] up_asg0, dn_asg0;   // calls given to Car A
+    output [7:0] up_asg1, dn_asg1;   // calls given to Car B
 
+    // ---------------- internal wires ----------------
+    wire [7:0] free_up, free_dn;     // waiting but not yet given to a car
+    wire [2:0] up_floor, dn_floor;   // lowest free call of each kind
+    wire       up_valid, dn_valid;   // is there a free call of that kind?
+
+    wire       pick_valid;           // is there any call to hand out?
+    wire       pick_up;              // 1 = it is an UP call, 0 = a DOWN call
+    wire [2:0] pick_floor;           // floor of the call being handed out
+    wire [7:0] pick_vec;             // the same floor as a one-hot vector
+
+    wire [2:0] dist0, dist1;         // how far each car is from pick_floor
+    wire       pick_car1;            // 1 = give it to Car B, 0 = Car A
+
+    wire [7:0] new_up, new_dn;       // the call handed out this cycle
+    wire [7:0] served_up, served_dn; // calls answered by either car
+
+    // ===================================================================
+    // Which calls belong to which car
+    // ===================================================================
+    // A call belongs to Car A if it is pending, assigned, and owner = 0.
     assign up_asg0 = up_pend & up_asgd & ~up_owner;
     assign dn_asg0 = dn_pend & dn_asgd & ~dn_owner;
     assign up_asg1 = up_pend & up_asgd &  up_owner;
     assign dn_asg1 = dn_pend & dn_asgd &  dn_owner;
 
-    // ------------------------------------------------------------------
-    // Pick the next unassigned call (priority encoder)
-    // ------------------------------------------------------------------
-    reg          pick_valid;
-    reg          pick_up;
-    reg [FW-1:0] pick_floor;
-    integer i;
+    // ===================================================================
+    // Step 2: pick one free call
+    // ===================================================================
+    assign free_up = up_pend & ~up_asgd;
+    assign free_dn = dn_pend & ~dn_asgd;
 
-    always @* begin
-        pick_valid = 1'b0;
-        pick_up    = 1'b0;
-        pick_floor = {FW{1'b0}};
-        for (i = N-1; i >= 0; i = i - 1)
-            if (dn_pend[i] && !dn_asgd[i]) begin pick_valid = 1'b1; pick_up = 1'b0; pick_floor = i; end
-        for (i = N-1; i >= 0; i = i - 1)
-            if (up_pend[i] && !up_asgd[i]) begin pick_valid = 1'b1; pick_up = 1'b1; pick_floor = i; end
-    end
+    priority_encoder8 enc_up (free_up, up_floor, up_valid);
+    priority_encoder8 enc_dn (free_dn, dn_floor, dn_valid);
 
-    // ------------------------------------------------------------------
-    // Cost function
-    // ------------------------------------------------------------------
-    function [3:0] popcount;
-        input [N-1:0] v;
-        integer k;
+    assign pick_valid = up_valid | dn_valid;
+    assign pick_up    = up_valid;                           // UP calls go first
+    assign pick_floor = up_valid ? up_floor : dn_floor;     // 2-to-1 multiplexer
+
+    // ===================================================================
+    // Steps 3 and 4: give it to the nearer car
+    // ===================================================================
+    distance d0 (floor0, pick_floor, dist0);
+    distance d1 (floor1, pick_floor, dist1);
+
+    assign pick_car1 = (dist1 < dist0);     // tie -> Car A
+
+    // turn the chosen floor into a vector (all zeros if nothing was picked)
+    decoder3to8 dec_pick (pick_valid, pick_floor, pick_vec);
+
+    assign new_up = pick_up ? pick_vec : 8'b00000000;
+    assign new_dn = pick_up ? 8'b00000000 : pick_vec;
+
+    // ===================================================================
+    // Step 5: calls answered by a car
+    // ===================================================================
+    assign served_up = serve_up0 | serve_up1;
+    assign served_dn = serve_dn0 | serve_dn1;
+
+    // ===================================================================
+    // The six call registers
+    // ===================================================================
+    //   pend : set by a button, cleared when served
+    //   asgd : set when handed out, cleared when served
+    //   owner: written with the chosen car when a call is handed out,
+    //          otherwise kept as it is
+    always @(posedge clk)
+    begin
+        if (rst)
         begin
-            popcount = 4'd0;
-            for (k = 0; k < N; k = k + 1) popcount = popcount + v[k];
+            up_pend <= 0;  up_asgd <= 0;  up_owner <= 0;
+            dn_pend <= 0;  dn_asgd <= 0;  dn_owner <= 0;
         end
-    endfunction
-
-    function [5:0] cost;
-        input [FW-1:0] cf;      // car floor
-        input [1:0]    cst;     // car state
-        input [1:0]    cdir;    // car direction
-        input [1:0]    cndir;   // car next direction
-        input [FW-1:0] f;       // call floor
-        input          up;      // call direction
-        input [3:0]    load;
-        reg   [FW-1:0] dist;
-        reg   [1:0]    edir;
-        reg            en_route;
+        else
         begin
-            dist = (cf > f) ? (cf - f) : (f - cf);
-            edir = (cst == S_DOOR) ? cndir : cdir;     // a stopped car is about to go next_dir
-            if (edir == D_NONE)    en_route = 1'b1;
-            else if (edir == D_UP) en_route =  up && ((f > cf) || (f == cf && cst == S_DOOR));
-            else                   en_route = !up && ((f < cf) || (f == cf && cst == S_DOOR));
-            cost = dist + load + (en_route ? 6'd0 : 2 * N);
-        end
-    endfunction
+            up_pend <= (up_pend | hall_up_btn) & ~served_up;
+            dn_pend <= (dn_pend | hall_dn_btn) & ~served_dn;
 
-    wire [3:0] load0 = popcount(calls0 | up_asg0 | dn_asg0);
-    wire [3:0] load1 = popcount(calls1 | up_asg1 | dn_asg1);
-    wire [5:0] cost0 = cost(floor0, state0, dir0, ndir0, pick_floor, pick_up, load0);
-    wire [5:0] cost1 = cost(floor1, state1, dir1, ndir1, pick_floor, pick_up, load1);
-    wire       pick_car1 = (cost1 < cost0);
+            up_asgd <= (up_asgd & ~served_up) | new_up;
+            dn_asgd <= (dn_asgd & ~served_dn) | new_dn;
 
-    wire [N-1:0] pick_vec = pick_valid ? ({{(N-1){1'b0}}, 1'b1} << pick_floor) : {N{1'b0}};
-    wire [N-1:0] new_up   = pick_up  ? pick_vec : {N{1'b0}};
-    wire [N-1:0] new_dn   = !pick_up ? pick_vec : {N{1'b0}};
-    wire [N-1:0] served_up = serve_up0 | serve_up1;
-    wire [N-1:0] served_dn = serve_dn0 | serve_dn1;
-
-    // ------------------------------------------------------------------
-    // Call registers
-    // ------------------------------------------------------------------
-    always @(posedge clk) begin
-        if (rst) begin
-            up_pend <= 0; up_asgd <= 0; up_owner <= 0;
-            dn_pend <= 0; dn_asgd <= 0; dn_owner <= 0;
-        end else begin
-            up_pend  <= (up_pend | hall_up_btn) & ~served_up;
-            dn_pend  <= (dn_pend | hall_dn_btn) & ~served_dn;
-            up_asgd  <= (up_asgd & ~served_up) | new_up;
-            dn_asgd  <= (dn_asgd & ~served_dn) | new_dn;
-            up_owner <= (up_owner & ~new_up) | (pick_car1 ? new_up : {N{1'b0}});
-            dn_owner <= (dn_owner & ~new_dn) | (pick_car1 ? new_dn : {N{1'b0}});
+            if (pick_car1)
+            begin
+                up_owner <= up_owner | new_up;      // new call belongs to Car B
+                dn_owner <= dn_owner | new_dn;
+            end
+            else
+            begin
+                up_owner <= up_owner & ~new_up;     // new call belongs to Car A
+                dn_owner <= dn_owner & ~new_dn;
+            end
         end
     end
 endmodule

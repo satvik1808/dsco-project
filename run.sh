@@ -7,10 +7,8 @@ PATH="$PATH:/c/Program Files/nodejs:/c/iverilog/bin"
 mkdir -p build
 
 node scripts/gen_stimulus.js "${1:-4000}" "${2:-2026}"
-iverilog -g2005 -Wall -o build/sim.vvp \
-    -P tb_elevator_coordinator.CYCLES="${1:-4000}" \
-    rtl/elevator_car.v rtl/hall_call_dispatcher.v rtl/elevator_coordinator.v \
-    tb/tb_elevator_coordinator.v
+# compile exactly like the lab: the testbench `include's the design files
+iverilog -g2005 -Wall -Wno-timescale -I rtl -I build -o build/sim.vvp tb/tb_elevator_coordinator.v
 vvp -n build/sim.vvp
 node scripts/verify.js
 node scripts/vcd2js.js

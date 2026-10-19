@@ -47,14 +47,15 @@
     return { label: 'build/elevator.vcd · Icarus Verilog', list, byPath: new Map(list.map(s => [s.path, s])), end: () => W.end, replay: true };
   }
 
+  // bit width of a signal: from the Verilog waveform if it is loaded, else guessed from the name
+  const vcdWidth = new Map(((root.VERILOG_WAVES && root.VERILOG_WAVES.signals) || []).map(([p, w]) => [p, w]));
   function guessWidth(path) {
+    if (vcdWidth.has(path)) return vcdWidth.get(path);
     const l = leafOf(path);
-    if (/^(clk|rst|door\d?|door_open|in_door|serving|serve_car|stop_up|stop_dn|want_up|want_dn|any_\w+|pick_valid|pick_up|pick_car1)$/.test(l)) return 1;
-    if (/^(floor\d?|pick_floor)$/.test(l)) return 3;
-    if (/^(state\d?|dir\d?|ndir\d|next_dir)$/.test(l)) return 2;
-    if (/^timer\d?$/.test(l)) return 5;
-    if (/^cost\d$/.test(l)) return 6;
-    if (/^load\d$/.test(l)) return 4;
+    if (/^(clk|rst|en|valid|door\d?|door_open|call_\w+|\w+_valid|pick_up|pick_car1)$/.test(l)) return 1;
+    if (/^(floor\d?|pick_floor|up_floor|dn_floor|dist\d|a|b|d|w)$/.test(l)) return 3;
+    if (/^(state\d?|dir\d?|next_dir\d?)$/.test(l)) return 2;
+    if (/^timer\d?$/.test(l)) return 4;
     return 8;
   }
 
@@ -92,12 +93,12 @@
     'Top I/O': ['tb.clk', 'tb.rst', 'tb.hall_up_btn', 'tb.hall_dn_btn', 'tb.car_btn0', 'tb.car_btn1',
       'tb.floor0', 'tb.state0', 'tb.door0', 'tb.floor1', 'tb.state1', 'tb.door1', 'tb.up_pend', 'tb.dn_pend'],
     'Car A': ['tb.clk'].concat(['state', 'floor', 'dir', 'next_dir', 'timer', 'car_calls', 'hall_up_asg', 'hall_dn_asg',
-      'targets', 'any_above', 'any_below', 'stop_up', 'stop_dn', 'serving', 'door_open'].map(s => 'tb.dut.u_car0.' + s)),
+      'targets', 'call_here', 'call_above', 'call_below', 'door_open'].map(s => 'tb.dut.u_car0.' + s)),
     'Car B': ['tb.clk'].concat(['state', 'floor', 'dir', 'next_dir', 'timer', 'car_calls', 'hall_up_asg', 'hall_dn_asg',
-      'targets', 'any_above', 'any_below', 'stop_up', 'stop_dn', 'serving', 'door_open'].map(s => 'tb.dut.u_car1.' + s)),
+      'targets', 'call_here', 'call_above', 'call_below', 'door_open'].map(s => 'tb.dut.u_car1.' + s)),
     'Dispatcher': ['tb.clk', 'tb.hall_up_btn', 'tb.hall_dn_btn'].concat(['up_pend', 'up_asgd', 'up_owner', 'dn_pend', 'dn_asgd',
-      'dn_owner', 'pick_valid', 'pick_up', 'pick_floor', 'load0', 'load1', 'cost0', 'cost1', 'pick_car1', 'served_up',
-      'served_dn'].map(s => 'tb.dut.u_dispatch.' + s)),
+      'dn_owner', 'free_up', 'free_dn', 'pick_valid', 'pick_up', 'pick_floor', 'dist0', 'dist1', 'pick_car1',
+      'served_up', 'served_dn'].map(s => 'tb.dut.u_dispatch.' + s)),
   };
 
   function create(host) {

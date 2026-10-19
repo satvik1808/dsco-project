@@ -3,7 +3,7 @@
 // Two sources drive the same renderer:
 //   live   : ElevatorRTL (JS port of the Verilog) clocked in the browser,
 //            inputs come from your clicks / random traffic
-//   replay : rows of build/trace_verilog.txt recorded by Icarus Verilog
+//   replay : register values from build/elevator.vcd, recorded by Icarus Verilog
 //            (web/verilog_trace.js); each row is also re-computed with the JS
 //            model and the badge shows whether they agree
 // ============================================================================
@@ -260,14 +260,11 @@
       }
     }
     if (info && info.pick) {
-      const { up, floor, car, costs, load } = info.pick;
-      const pc = prev.cars;
-      const parts = [0, 1].map(i => {
-        const dist = Math.abs(pc[i].floor - floor), pen = costs[i] - dist - load[i];
-        return `<span class="c${CAR[i].toLowerCase()}">${CAR[i]}</span>: ${dist} dist + ${load[i]} load${pen ? ` + ${pen} away` : ''} = <b>${costs[i]}</b>`;
-      });
-      $('decision').innerHTML = `cycle ${cur.cycle}: assign <b>${up ? '▲' : '▼'} F${floor}</b><br>${parts.join(' &nbsp;·&nbsp; ')}<br>→ <b class="c${CAR[car].toLowerCase()}">Car ${CAR[car]}</b> (lower cost${costs[0] === costs[1] ? ', tie → A' : ''})`;
-      log(`${up ? '▲' : '▼'} F${floor} assigned to <span class="c${CAR[car].toLowerCase()}">Car ${CAR[car]}</span> (cost A ${costs[0]} / B ${costs[1]})`);
+      const { up, floor, car, dist } = info.pick;
+      const parts = [0, 1].map(i =>
+        `<span class="c${CAR[i].toLowerCase()}">${CAR[i]}</span>: F${prev.cars[i].floor} is <b>${dist[i]}</b> floor${dist[i] === 1 ? '' : 's'} away`);
+      $('decision').innerHTML = `cycle ${cur.cycle}: assign <b>${up ? '▲' : '▼'} F${floor}</b><br>${parts.join(' &nbsp;·&nbsp; ')}<br>→ <b class="c${CAR[car].toLowerCase()}">Car ${CAR[car]}</b> (nearer car${dist[0] === dist[1] ? ', tie → A' : ''})`;
+      log(`${up ? '▲' : '▼'} F${floor} assigned to <span class="c${CAR[car].toLowerCase()}">Car ${CAR[car]}</span> (distance A ${dist[0]} / B ${dist[1]})`);
     }
     for (let i = 0; i < 2; i++) {
       const added = cur.cars[i].calls & ~prev.cars[i].calls;
@@ -415,7 +412,7 @@
     doorAge = [0, 0]; doorPrev = [0, 0]; doorCur = [0, 0]; hotEdge = [null, null];
     waitStart = { up: {}, dn: {} }; servedCount = 0; waitTotal = 0; acc = 0;
     logEl.innerHTML = '';
-    $('decision').textContent = mode === 'live' ? 'Waiting for a hall call…' : 'Replaying build/trace_verilog.txt…';
+    $('decision').textContent = mode === 'live' ? 'Waiting for a hall call…' : 'Replaying the Icarus Verilog simulation…';
     $('cycle').textContent = 0;
     $('matchBadge').hidden = true;
     $('stats').textContent = '';

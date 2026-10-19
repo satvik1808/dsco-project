@@ -136,18 +136,21 @@
 
   // Register view
   const REGS = [
-    ['up_pend', r => r.up_pend, (r, b) => ownerClass(r.up_asgd, r.up_owner, b)],
-    ['up_asgd', r => r.up_asgd, (r, b) => ownerClass(r.up_asgd, r.up_owner, b)],
-    ['up_owner', r => r.up_owner, (r, b) => bit(r.up_asgd, b) ? 'cb' : ''],
-    ['dn_pend', r => r.dn_pend, (r, b) => ownerClass(r.dn_asgd, r.dn_owner, b)],
-    ['dn_asgd', r => r.dn_asgd, (r, b) => ownerClass(r.dn_asgd, r.dn_owner, b)],
-    ['dn_owner', r => r.dn_owner, (r, b) => bit(r.dn_asgd, b) ? 'cb' : ''],
-    ['calls0', r => r.cars[0].calls, () => 'ca'],
-    ['calls1', r => r.cars[1].calls, () => 'cb'],
+    ['Up calls waiting', r => r.up_pend, (r, b) => ownerClass(r.up_asgd, r.up_owner, b)],
+    ['Up calls assigned', r => r.up_asgd, (r, b) => ownerClass(r.up_asgd, r.up_owner, b)],
+    ['Up call owner', r => r.up_owner, (r, b) => bit(r.up_asgd, b) ? 'cb' : ''],
+    ['Down calls waiting', r => r.dn_pend, (r, b) => ownerClass(r.dn_asgd, r.dn_owner, b)],
+    ['Down calls assigned', r => r.dn_asgd, (r, b) => ownerClass(r.dn_asgd, r.dn_owner, b)],
+    ['Down call owner', r => r.dn_owner, (r, b) => bit(r.dn_asgd, b) ? 'cb' : ''],
+    ['Car A cabin calls', r => r.cars[0].calls, () => 'ca'],
+    ['Car B cabin calls', r => r.cars[1].calls, () => 'cb'],
   ];
+  // the matching Verilog register names (shown as a tooltip on each row name)
+  const REG_VERILOG = ['up_pend', 'up_asgd', 'up_owner (1 = Car B)', 'dn_pend', 'dn_asgd', 'dn_owner (1 = Car B)', 'u_car0.car_calls', 'u_car1.car_calls'];
   function ownerClass(asgd, owner, b) { return bit(asgd, b) ? (bit(owner, b) ? 'cb' : 'ca') : ''; }
-  const regCells = REGS.map(([name]) => {
+  const regCells = REGS.map(([name], k) => {
     const nameEl = document.createElement('div'); nameEl.className = 'name'; nameEl.textContent = name;
+    nameEl.title = 'Verilog: ' + REG_VERILOG[k];
     $('regs').appendChild(nameEl);
     const bits = [];
     for (let b = N - 1; b >= 0; b--) {

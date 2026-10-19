@@ -142,7 +142,7 @@ input[type=checkbox] { accent-color: var(--dark); }
 .car .door { position: absolute; top: 0; bottom: 0; width: 50%; background: var(--c); }
 .car .door.l { left: 0; border-right: 1px solid var(--bg); }
 .car .door.r { right: 0; border-left: 1px solid var(--bg); }
-.car .arrow { position: absolute; top: 2px; left: 0; right: 0; text-align: center; font-size: 10px; color: var(--bg); z-index: 2; mix-blend-mode: difference; }
+.car .arrow { position: absolute; top: 2px; left: 0; right: 0; text-align: center; font-size: 13px; line-height: 1; color: #e11d2a; z-index: 2; text-shadow: 0 0 1px #fff, 0 0 1px #fff, 0 0 2px #fff; }
 
 /* ---------- car panels ---------- */
 .cars { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }

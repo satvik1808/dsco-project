@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Elevator Coordinator RTL</title>
+  <script>try { const t = localStorage.getItem('theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}</script>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -23,6 +24,7 @@
       <label class="speed">clk <input id="speed" type="range" min="1" max="60" value="12"> <span id="speedVal">12 Hz</span></label>
       <label class="toggle" id="trafficWrap"><input id="traffic" type="checkbox" checked> random traffic</label>
       <label class="toggle" title="Button beeps, door chime, and music while the cars move (web/songbird.mp3 if present)"><input id="sound" type="checkbox" checked> sound</label>
+      <button id="theme" class="btn" title="Switch between light and dark theme">Dark</button>
     </div>
   </header>
 

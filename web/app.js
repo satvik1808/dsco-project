@@ -87,11 +87,10 @@
     return `M${sx.toFixed(1)},${sy.toFixed(1)} Q${cx.toFixed(1)},${cy.toFixed(1)} ${ex.toFixed(1)},${ey.toFixed(1)}`;
   }
   function fsmSvg(i) {
-    const col = i ? '#c45100' : '#0057b8';
     return `<svg class="fsm" viewBox="0 0 244 132" aria-label="Car ${CAR[i]} state machine">
       <defs>
-        <marker id="m${i}d" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L8,4 L0,8z" fill="#999"/></marker>
-        <marker id="m${i}h" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L8,4 L0,8z" fill="${col}"/></marker>
+        <marker id="m${i}d" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path class="mk" d="M0,0 L8,4 L0,8z"/></marker>
+        <marker id="m${i}h" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path class="mk h" d="M0,0 L8,4 L0,8z"/></marker>
       </defs>
       ${EDGES.map(([a, b]) => `<path class="edge" data-e="${a}${b}" d="${edgePath(a, b)}" marker-end="url(#m${i}d)"/>`).join('')}
       ${NODES.map(([x, y], s) => `<g class="node" data-s="${s}"><rect x="${x - 34}" y="${y - 12}" width="68" height="24"/><text x="${x}" y="${y}">${STATE_NAMES[s]}</text></g>`).join('')}
@@ -338,6 +337,12 @@
 
   // ---------------- per-frame animation ----------------
   const chart = $('chart'), ctx = chart.getContext('2d');
+  let theme = {};
+  function readTheme() {
+    const cs = getComputedStyle(document.documentElement), v = n => cs.getPropertyValue(n).trim();
+    theme = { muted: v('--muted'), grid: v('--grid'), a: v('--a'), b: v('--b') };
+    $('theme').textContent = cs.colorScheme === 'dark' ? 'Light' : 'Dark';
+  }
   function drawChart() {
     const dpr = window.devicePixelRatio || 1, w = chart.clientWidth, h = 150;
     if (chart.width !== Math.round(w * dpr)) { chart.width = Math.round(w * dpr); chart.height = h * dpr; }
@@ -345,13 +350,13 @@
     ctx.clearRect(0, 0, w, h);
     const padL = 26, padT = 8, padB = 8, ph = h - padT - padB, pw = w - padL - 4;
     const y = p => padT + ph - (p / (N - 1)) * ph;
-    ctx.font = '10px ui-monospace, Menlo, monospace'; ctx.fillStyle = '#666'; ctx.textBaseline = 'middle';
+    ctx.font = '11px ui-monospace, Menlo, Consolas, monospace'; ctx.fillStyle = theme.muted; ctx.textBaseline = 'middle';
     for (let f = 0; f < N; f++) {
-      ctx.strokeStyle = '#e5e5e5'; ctx.lineWidth = 1;
+      ctx.strokeStyle = theme.grid; ctx.lineWidth = 1;
       ctx.beginPath(); ctx.moveTo(padL, y(f)); ctx.lineTo(w - 4, y(f)); ctx.stroke();
       ctx.fillText('F' + f, 2, y(f));
     }
-    const cols = ['#0057b8', '#c45100'];
+    const cols = [theme.a, theme.b];
     for (let i = 0; i < 2; i++) {
       ctx.strokeStyle = cols[i]; ctx.lineWidth = 1.5; ctx.lineJoin = 'miter';
       ctx.beginPath();
@@ -492,6 +497,14 @@
   $('reset').onclick = resetSim;
   $('speed').oninput = e => { hz = +e.target.value; $('speedVal').textContent = hz + ' Hz'; };
   $('traffic').onchange = e => { traffic = e.target.checked; };
+  $('theme').onclick = () => {
+    const t = $('theme').textContent === 'Dark' ? 'dark' : 'light';
+    document.documentElement.dataset.theme = t;
+    try { localStorage.setItem('theme', t); } catch (e) {}
+    readTheme();
+  };
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', readTheme);
+  readTheme();
   $('sound').onchange = e => Sound.setEnabled(e.target.checked);
   document.addEventListener('keydown', e => {
     if (e.target.tagName === 'INPUT') return;

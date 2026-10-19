@@ -1,0 +1,439 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1700" height="1710" viewBox="0 0 1700 1710" font-family="Arial, Helvetica, sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#555"/>
+    </marker>
+    <marker id="aA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#2b6cb0"/>
+    </marker>
+    <marker id="aB" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#a8327f"/>
+    </marker>
+    <style>
+      .t  { font-size: 13.5px; font-weight: bold; fill: #222; }
+      .b  { font-size: 12px; fill: #333; }
+      .m  { font-size: 12px; fill: #333; font-family: Consolas, "Courier New", monospace; }
+      .s  { font-size: 10.5px; fill: #666; }
+      .ft { font-size: 15px; font-weight: bold; fill: #333; }
+      .fs { font-size: 12px; fill: #666; font-style: italic; }
+      .ca { font-size: 11px; fill: #2b6cb0; font-weight: bold; }
+      .cb { font-size: 11px; fill: #a8327f; font-weight: bold; }
+      .cam { font-size: 10.5px; fill: #2b6cb0; font-family: Consolas, "Courier New", monospace; }
+      .cbm { font-size: 10.5px; fill: #a8327f; font-family: Consolas, "Courier New", monospace; }
+      .reg  { fill: #fff1e0; stroke: #d9822b; stroke-width: 1.6; }
+      .comb { fill: #e8f0fe; stroke: #4a76c9; stroke-width: 1.4; }
+      .fsm  { fill: #e7f6ec; stroke: #2f9e5a; stroke-width: 1.6; }
+      .io   { fill: #f2f2f2; stroke: #888; stroke-width: 1.4; }
+      .gl   { fill: #fffbe6; stroke: #c9b458; stroke-width: 1.4; }
+      .frame { fill: none; stroke: #999; stroke-width: 1.5; stroke-dasharray: 7 5; }
+      .sub   { fill: #fafafa; stroke: #777; stroke-width: 1.5; }
+      .w  { fill: none; stroke: #555; stroke-width: 1.5; marker-end: url(#a); }
+      .wa { fill: none; stroke: #2b6cb0; stroke-width: 2; marker-end: url(#aA); }
+      .wb { fill: none; stroke: #a8327f; stroke-width: 2; marker-end: url(#aB); }
+      .h  { fill: none; stroke: #fff; stroke-width: 7; }
+      .st { fill: #fff; stroke: #2f9e5a; stroke-width: 1.4; }
+      .sn { font-size: 11px; font-weight: bold; fill: #1d6b3d; }
+    </style>
+  </defs>
+
+  <rect width="1700" height="1710" fill="#ffffff"/>
+
+  <!-- Title -->
+  <text x="850" y="42" text-anchor="middle" font-size="24" font-weight="bold" fill="#222">Smart Elevator: full architecture (dispatcher + both cars)</text>
+  <text x="850" y="66" text-anchor="middle" class="fs">2 cars, 8 floors. Every 8-bit "floor vector" has one bit per floor: bit k stands for floor k. Blue wires belong to Car A, magenta wires to Car B.</text>
+
+  <!-- ================= INPUTS ================= -->
+  <rect x="80" y="92" width="340" height="62" rx="6" class="io"/>
+  <text x="250" y="113" text-anchor="middle" class="t">Hall buttons (UP / DOWN at each floor)</text>
+  <text x="250" y="131" text-anchor="middle" class="b">8 UP buttons + 8 DOWN buttons, one bit per floor</text>
+  <text x="250" y="146" text-anchor="middle" class="s">code: hall_up_btn, hall_dn_btn</text>
+
+  <text x="800" y="118" text-anchor="middle" class="fs">clk and rst go to every register in all three blocks</text>
+  <text x="800" y="135" text-anchor="middle" class="fs">(dispatcher, Car A and Car B all update on the same rising clock edge)</text>
+
+  <rect x="1205" y="92" width="250" height="62" rx="6" class="io"/>
+  <text x="1330" y="113" text-anchor="middle" class="t">Cabin buttons, Car A</text>
+  <text x="1330" y="131" text-anchor="middle" class="b">8 floor buttons inside the car</text>
+  <text x="1330" y="146" text-anchor="middle" class="s">code: car_btn0</text>
+
+  <rect x="1475" y="92" width="160" height="62" rx="6" class="io"/>
+  <text x="1555" y="113" text-anchor="middle" class="t">Cabin buttons, Car B</text>
+  <text x="1555" y="131" text-anchor="middle" class="b">8 floor buttons</text>
+  <text x="1555" y="146" text-anchor="middle" class="s">code: car_btn1</text>
+
+  <!-- Top-level frame -->
+  <rect x="20" y="165" width="1660" height="1315" rx="10" class="frame"/>
+  <text x="38" y="188" class="ft">Top level (elevator_coordinator.v)</text>
+  <text x="345" y="188" class="fs">has no logic of its own: it only wires the dispatcher (u_dispatch) and the two cars (u_car0, u_car1) together</text>
+
+  <!-- ================= DISPATCHER ================= -->
+  <rect x="50" y="205" width="550" height="920" rx="8" class="sub"/>
+  <text x="70" y="230" class="ft">Hall call dispatcher</text>
+  <text x="70" y="250" class="fs">picks which car answers each call</text>
+  <text x="70" y="266" class="s">hall_call_dispatcher.v · instance u_dispatch</text>
+
+  <!-- row 1: registers + split -->
+  <rect x="75" y="280" width="260" height="100" rx="5" class="reg"/>
+  <text x="88" y="299" class="t">Call registers (clocked)</text>
+  <text x="88" y="317" class="b"><tspan font-weight="bold">pending</tspan>: a call is waiting</text>
+  <text x="88" y="333" class="b"><tspan font-weight="bold">assigned</tspan>: already given to a car</text>
+  <text x="88" y="349" class="b"><tspan font-weight="bold">owner</tspan>: 0 = Car A, 1 = Car B</text>
+  <text x="88" y="367" class="s">separate UP and DOWN sets, 8 bits each</text>
+
+  <rect x="365" y="280" width="215" height="100" rx="5" class="comb"/>
+  <text x="378" y="298" class="t">Split calls by owner</text>
+  <text x="378" y="316" class="b"><tspan fill="#2b6cb0" font-weight="bold">Car A</tspan>: pending AND assigned</text>
+  <text x="420" y="331" class="b">AND owner is 0</text>
+  <text x="378" y="352" class="b"><tspan fill="#a8327f" font-weight="bold">Car B</tspan>: pending AND assigned</text>
+  <text x="420" y="367" class="b">AND owner is 1</text>
+  <path d="M335,330 L365,330" class="w"/>
+
+  <!-- row 2: free -->
+  <rect x="75" y="430" width="505" height="48" rx="5" class="comb"/>
+  <text x="88" y="450" class="b"><tspan font-weight="bold">free calls</tspan> = pending AND NOT assigned</text>
+  <text x="88" y="468" class="b">calls that are waiting but not yet given to any car</text>
+  <path d="M205,380 L205,430" class="w"/>
+
+  <!-- row 3: priority encoders -->
+  <rect x="75" y="530" width="240" height="60" rx="5" class="comb"/>
+  <text x="88" y="552" class="t">Priority encoder (UP calls)</text>
+  <text x="88" y="574" class="b">lowest floor with a free UP call</text>
+  <rect x="340" y="530" width="240" height="60" rx="5" class="comb"/>
+  <text x="353" y="552" class="t">Priority encoder (DOWN calls)</text>
+  <text x="353" y="574" class="b">lowest floor with a free DOWN call</text>
+  <path d="M195,478 L195,530" class="w"/>
+  <path d="M460,478 L460,530" class="w"/>
+
+  <!-- row 4: mux -->
+  <rect x="75" y="640" width="505" height="55" rx="5" class="comb"/>
+  <text x="88" y="661" class="t">2-to-1 multiplexer (UP calls go first)</text>
+  <text x="88" y="682" class="b">gives: the chosen floor · is it an UP or DOWN call · is there any call at all</text>
+  <path d="M195,590 L195,640" class="w"/>
+  <path d="M460,590 L460,640" class="w"/>
+
+  <!-- row 5: decoder + distance -->
+  <rect x="75" y="750" width="240" height="64" rx="5" class="comb"/>
+  <text x="88" y="770" class="t">3-to-8 decoder</text>
+  <text x="88" y="788" class="b">chosen floor number → one-hot</text>
+  <text x="88" y="805" class="b">floor vector (all zeros if no call)</text>
+  <rect x="340" y="750" width="240" height="64" rx="5" class="comb"/>
+  <text x="353" y="770" class="t">Distance calculators</text>
+  <text x="353" y="788" class="b"><tspan fill="#2b6cb0" font-weight="bold">d0</tspan> = |Car A floor − chosen floor|</text>
+  <text x="353" y="805" class="b"><tspan fill="#a8327f" font-weight="bold">d1</tspan> = |Car B floor − chosen floor|</text>
+  <path d="M195,695 L195,750" class="w"/>
+  <path d="M460,695 L460,750" class="w"/>
+
+  <!-- row 6: new call + comparator -->
+  <rect x="75" y="870" width="240" height="62" rx="5" class="comb"/>
+  <text x="88" y="890" class="t">New assignment</text>
+  <text x="88" y="908" class="b">mark the chosen floor as assigned</text>
+  <text x="88" y="925" class="b">owner = the nearer car</text>
+  <rect x="340" y="870" width="240" height="62" rx="5" class="comb"/>
+  <text x="353" y="890" class="t">Comparator</text>
+  <text x="353" y="908" class="b">d1 &lt; d0 ?  (Car B nearer?)</text>
+  <text x="353" y="925" class="b">yes → Car B, no or tie → Car A</text>
+  <path d="M195,814 L195,870" class="w"/>
+  <path d="M460,814 L460,870" class="w"/>
+  <path d="M340,901 L315,901" class="w"/>
+
+  <!-- row 7: next-state logic -->
+  <rect x="75" y="990" width="505" height="110" rx="5" class="comb"/>
+  <text x="88" y="1010" class="t">Next register values (stored on the next clock edge)</text>
+  <text x="88" y="1030" class="b"><tspan font-weight="bold">answered</tspan> = answered by <tspan fill="#2b6cb0" font-weight="bold">Car A</tspan> OR answered by <tspan fill="#a8327f" font-weight="bold">Car B</tspan></text>
+  <text x="88" y="1048" class="b"><tspan font-weight="bold">pending</tspan> ← (pending OR new button press) AND NOT answered</text>
+  <text x="88" y="1066" class="b"><tspan font-weight="bold">assigned</tspan> ← (assigned AND NOT answered) OR new assignment</text>
+  <text x="88" y="1084" class="b"><tspan font-weight="bold">owner</tspan> ← the nearer car, for the new assignment</text>
+  <path d="M195,932 L195,990" class="w"/>
+  <!-- loop back into registers -->
+  <path d="M75,1045 L62,1045 L62,335 L75,335" class="w"/>
+
+  <!-- hall buttons into registers -->
+  <path d="M322,154 L322,280" class="w"/>
+
+  <!-- ================= WIRE TABLE ================= -->
+  <rect x="50" y="1145" width="550" height="300" rx="8" class="gl"/>
+  <text x="70" y="1170" class="ft">Wires between the blocks</text>
+  <text x="70" y="1188" class="fs">this wiring is everything elevator_coordinator.v contains</text>
+
+  <path d="M70,1215 L110,1215" class="wa"/>
+  <text x="122" y="1214" class="b"><tspan font-weight="bold">Dispatcher → Car A</tspan>: the hall calls Car A must answer</text>
+  <text x="122" y="1230" class="m">up_asg0, dn_asg0   (8 bits each)</text>
+
+  <path d="M70,1259 L110,1259" class="wb"/>
+  <text x="122" y="1258" class="b"><tspan font-weight="bold">Dispatcher → Car B</tspan>: the hall calls Car B must answer</text>
+  <text x="122" y="1274" class="m">up_asg1, dn_asg1   (8 bits each)</text>
+
+  <path d="M110,1303 L70,1303" class="wa"/>
+  <text x="122" y="1302" class="b"><tspan font-weight="bold">Car A → Dispatcher</tspan>: where it is, which calls it answered</text>
+  <text x="122" y="1318" class="m">floor0 (3 bits) · serve_up0, serve_dn0</text>
+
+  <path d="M110,1347 L70,1347" class="wb"/>
+  <text x="122" y="1346" class="b"><tspan font-weight="bold">Car B → Dispatcher</tspan>: where it is, which calls it answered</text>
+  <text x="122" y="1362" class="m">floor1 (3 bits) · serve_up1, serve_dn1</text>
+
+  <path d="M70,1391 L110,1391" class="w"/>
+  <text x="122" y="1390" class="b"><tspan font-weight="bold">Buttons in</tspan>: from the top-level input ports</text>
+  <text x="122" y="1406" class="m">hall_*_btn → dispatcher · car_btn0/1 → Car A/B</text>
+
+  <text x="70" y="1432" class="s">next_dir0 / next_dir1 are also wired out of each car, only so the website can show them.</text>
+
+  <!-- ================= CAR A ================= -->
+  <g transform="translate(80,0)">
+    <rect x="740" y="205" width="820" height="585" rx="8" class="sub"/>
+    <rect x="740" y="213" width="6" height="569" fill="#2b6cb0"/>
+    <text x="760" y="230" class="ft" fill="#2b6cb0">Elevator car A</text>
+    <text x="880" y="230" class="s">elevator_car.v · instance u_car0 · ports end in 0</text>
+    <text x="760" y="250" class="fs">a 4-state machine that visits the car's list of target floors</text>
+
+    <rect x="765" y="275" width="295" height="75" rx="5" class="comb"/>
+    <text x="778" y="295" class="t">Target floors</text>
+    <text x="778" y="315" class="b">cabin calls OR hall UP calls OR hall</text>
+    <text x="778" y="333" class="b">DOWN calls given to this car</text>
+
+    <rect x="1100" y="275" width="300" height="75" rx="5" class="reg"/>
+    <text x="1113" y="295" class="t">Cabin call register (8 flip-flops)</text>
+    <text x="1113" y="315" class="b">set when a cabin button is pressed</text>
+    <text x="1113" y="333" class="b">cleared when the door opens at that floor</text>
+    <text x="1113" y="345" class="s">output: calls0</text>
+    <path d="M1100,312 L1060,312" class="w"/>
+
+    <rect x="765" y="385" width="295" height="65" rx="5" class="comb"/>
+    <text x="778" y="406" class="t">3-to-8 decoder</text>
+    <text x="778" y="424" class="b">current floor → one-hot "here" vector</text>
+    <text x="778" y="442" class="s">floor 3 → 00001000</text>
+
+    <rect x="1100" y="385" width="300" height="65" rx="5" class="comb"/>
+    <text x="1113" y="406" class="t">Floor masks</text>
+    <text x="1113" y="424" class="b">current floor → floors above / floors below</text>
+    <text x="1113" y="442" class="s">floor 3 → above 11110000, below 00000111</text>
+
+    <path d="M1540,650 L1550,650 L1550,370 L912,370 L912,385" class="w"/>
+    <path d="M1250,370 L1250,385" class="w"/>
+    <text x="1453" y="364" class="b">current floor</text>
+
+    <rect x="765" y="490" width="635" height="70" rx="5" class="comb"/>
+    <text x="778" y="508" class="t">AND each with the target floors, then OR all 8 bits: is any bit 1?</text>
+    <text x="790" y="530" class="b" font-weight="bold">Call at this floor?</text>
+    <text x="790" y="548" class="b">targets AND here</text>
+    <text x="1000" y="530" class="b" font-weight="bold">Call above?</text>
+    <text x="1000" y="548" class="b">targets AND above</text>
+    <text x="1210" y="530" class="b" font-weight="bold">Call below?</text>
+    <text x="1210" y="548" class="b">targets AND below</text>
+    <path d="M912,450 L912,490" class="w"/>
+    <path d="M1250,450 L1250,490" class="w"/>
+    <path d="M765,335 L752,335 L752,525 L765,525" class="w"/>
+
+    <rect x="765" y="600" width="235" height="70" rx="5" class="comb"/>
+    <text x="778" y="620" class="t">Next direction logic</text>
+    <text x="778" y="638" class="b">keep going while there is work</text>
+    <text x="778" y="654" class="b">that way, else turn, else stop</text>
+    <path d="M880,560 L880,600" class="w"/>
+
+    <rect x="765" y="698" width="235" height="78" rx="5" class="comb"/>
+    <text x="778" y="716" class="t">Calls answered</text>
+    <text x="778" y="734" class="b">if the door is open: this car's</text>
+    <text x="778" y="750" class="b">hall calls AND here</text>
+    <text x="778" y="766" class="b">→ tells the dispatcher</text>
+
+    <rect x="1030" y="600" width="510" height="175" rx="6" class="fsm"/>
+    <text x="1045" y="620" class="t">State machine (clocked)</text>
+    <text x="1045" y="638" font-size="11" fill="#333">stores: state, floor, direction, timer · 1 floor = 8 clock ticks · door open = 10 ticks</text>
+    <path d="M1250,560 L1250,600" class="w"/>
+    <path d="M1000,635 L1030,635" class="w"/>
+    <path d="M1030,738 L1000,738" class="w"/>
+    <text x="1015" y="731" text-anchor="middle" class="s">state</text>
+
+    <rect x="1040" y="692" width="70" height="26" rx="13" class="st"/>
+    <text x="1075" y="709" text-anchor="middle" class="sn">IDLE</text>
+    <rect x="1150" y="657" width="105" height="26" rx="13" class="st"/>
+    <text x="1202" y="674" text-anchor="middle" class="sn">MOVING UP</text>
+    <rect x="1150" y="727" width="105" height="26" rx="13" class="st"/>
+    <text x="1202" y="744" text-anchor="middle" class="sn">MOVING DOWN</text>
+    <rect x="1295" y="692" width="90" height="26" rx="13" class="st"/>
+    <text x="1340" y="709" text-anchor="middle" class="sn">DOOR OPEN</text>
+    <path d="M1110,699 L1150,673" class="w"/>
+    <path d="M1110,711 L1150,737" class="w"/>
+    <path d="M1255,673 L1295,699" class="w"/>
+    <path d="M1255,737 L1295,711" class="w"/>
+    <path d="M1340,718 L1340,764 L1075,764 L1075,718" class="w"/>
+    <text x="1108" y="676" class="s">above</text>
+    <text x="1108" y="748" class="s">below</text>
+    <text x="1262" y="680" class="s">here</text>
+    <text x="1262" y="745" class="s">here</text>
+    <text x="1395" y="700" class="s">when the door timer ends,</text>
+    <text x="1395" y="714" class="s">the next direction picks</text>
+    <text x="1395" y="728" class="s">UP, DOWN or IDLE</text>
+  </g>
+
+  <!-- ================= CAR B (same circuit, its own registers) ================= -->
+  <g transform="translate(80,655)">
+    <rect x="740" y="205" width="820" height="585" rx="8" class="sub"/>
+    <rect x="740" y="213" width="6" height="569" fill="#a8327f"/>
+    <text x="760" y="230" class="ft" fill="#a8327f">Elevator car B</text>
+    <text x="880" y="230" class="s">elevator_car.v · instance u_car1 · ports end in 1</text>
+    <text x="760" y="250" class="fs">a second copy of the same circuit, with its own registers: it runs at the same time as Car A</text>
+
+    <rect x="765" y="275" width="295" height="75" rx="5" class="comb"/>
+    <text x="778" y="295" class="t">Target floors</text>
+    <text x="778" y="315" class="b">cabin calls OR hall UP calls OR hall</text>
+    <text x="778" y="333" class="b">DOWN calls given to this car</text>
+
+    <rect x="1100" y="275" width="300" height="75" rx="5" class="reg"/>
+    <text x="1113" y="295" class="t">Cabin call register (8 flip-flops)</text>
+    <text x="1113" y="315" class="b">set when a cabin button is pressed</text>
+    <text x="1113" y="333" class="b">cleared when the door opens at that floor</text>
+    <text x="1113" y="345" class="s">output: calls1</text>
+    <path d="M1100,312 L1060,312" class="w"/>
+
+    <rect x="765" y="385" width="295" height="65" rx="5" class="comb"/>
+    <text x="778" y="406" class="t">3-to-8 decoder</text>
+    <text x="778" y="424" class="b">current floor → one-hot "here" vector</text>
+    <text x="778" y="442" class="s">floor 5 → 00100000</text>
+
+    <rect x="1100" y="385" width="300" height="65" rx="5" class="comb"/>
+    <text x="1113" y="406" class="t">Floor masks</text>
+    <text x="1113" y="424" class="b">current floor → floors above / floors below</text>
+    <text x="1113" y="442" class="s">floor 5 → above 11000000, below 00011111</text>
+
+    <path d="M1540,650 L1550,650 L1550,370 L912,370 L912,385" class="w"/>
+    <path d="M1250,370 L1250,385" class="w"/>
+    <text x="1453" y="364" class="b">current floor</text>
+
+    <rect x="765" y="490" width="635" height="70" rx="5" class="comb"/>
+    <text x="778" y="508" class="t">AND each with the target floors, then OR all 8 bits: is any bit 1?</text>
+    <text x="790" y="530" class="b" font-weight="bold">Call at this floor?</text>
+    <text x="790" y="548" class="b">targets AND here</text>
+    <text x="1000" y="530" class="b" font-weight="bold">Call above?</text>
+    <text x="1000" y="548" class="b">targets AND above</text>
+    <text x="1210" y="530" class="b" font-weight="bold">Call below?</text>
+    <text x="1210" y="548" class="b">targets AND below</text>
+    <path d="M912,450 L912,490" class="w"/>
+    <path d="M1250,450 L1250,490" class="w"/>
+    <path d="M765,335 L752,335 L752,525 L765,525" class="w"/>
+
+    <rect x="765" y="600" width="235" height="70" rx="5" class="comb"/>
+    <text x="778" y="620" class="t">Next direction logic</text>
+    <text x="778" y="638" class="b">keep going while there is work</text>
+    <text x="778" y="654" class="b">that way, else turn, else stop</text>
+    <path d="M880,560 L880,600" class="w"/>
+
+    <rect x="765" y="698" width="235" height="78" rx="5" class="comb"/>
+    <text x="778" y="716" class="t">Calls answered</text>
+    <text x="778" y="734" class="b">if the door is open: this car's</text>
+    <text x="778" y="750" class="b">hall calls AND here</text>
+    <text x="778" y="766" class="b">→ tells the dispatcher</text>
+
+    <rect x="1030" y="600" width="510" height="175" rx="6" class="fsm"/>
+    <text x="1045" y="620" class="t">State machine (clocked)</text>
+    <text x="1045" y="638" font-size="11" fill="#333">stores: state, floor, direction, timer · 1 floor = 8 clock ticks · door open = 10 ticks</text>
+    <path d="M1250,560 L1250,600" class="w"/>
+    <path d="M1000,635 L1030,635" class="w"/>
+    <path d="M1030,738 L1000,738" class="w"/>
+    <text x="1015" y="731" text-anchor="middle" class="s">state</text>
+
+    <rect x="1040" y="692" width="70" height="26" rx="13" class="st"/>
+    <text x="1075" y="709" text-anchor="middle" class="sn">IDLE</text>
+    <rect x="1150" y="657" width="105" height="26" rx="13" class="st"/>
+    <text x="1202" y="674" text-anchor="middle" class="sn">MOVING UP</text>
+    <rect x="1150" y="727" width="105" height="26" rx="13" class="st"/>
+    <text x="1202" y="744" text-anchor="middle" class="sn">MOVING DOWN</text>
+    <rect x="1295" y="692" width="90" height="26" rx="13" class="st"/>
+    <text x="1340" y="709" text-anchor="middle" class="sn">DOOR OPEN</text>
+    <path d="M1110,699 L1150,673" class="w"/>
+    <path d="M1110,711 L1150,737" class="w"/>
+    <path d="M1255,673 L1295,699" class="w"/>
+    <path d="M1255,737 L1295,711" class="w"/>
+    <path d="M1340,718 L1340,764 L1075,764 L1075,718" class="w"/>
+    <text x="1108" y="676" class="s">above</text>
+    <text x="1108" y="748" class="s">below</text>
+    <text x="1262" y="680" class="s">here</text>
+    <text x="1262" y="745" class="s">here</text>
+    <text x="1395" y="700" class="s">when the door timer ends,</text>
+    <text x="1395" y="714" class="s">the next direction picks</text>
+    <text x="1395" y="728" class="s">UP, DOWN or IDLE</text>
+  </g>
+
+  <!-- ================= WIRES BETWEEN BLOCKS ================= -->
+  <!-- cabin buttons -> cabin call registers -->
+  <path d="M1330,154 L1330,275" class="h"/>
+  <path d="M1330,154 L1330,275" class="wa"/>
+  <path d="M1635,122 L1665,122 L1665,967 L1480,967" class="h"/>
+  <path d="M1635,122 L1665,122 L1665,967 L1480,967" class="wb"/>
+  <text x="1660" y="560" class="cbm" text-anchor="end" transform="rotate(-90 1660 560)">car_btn1</text>
+
+  <!-- Car B answered -> next register values -->
+  <path d="M845,1393 L745,1393 L745,1060 L580,1060" class="h"/>
+  <path d="M845,1393 L745,1393 L745,1060 L580,1060" class="wb"/>
+  <text x="667" y="1077" text-anchor="middle" class="cb">Car B answered</text>
+  <text x="667" y="1090" text-anchor="middle" class="cbm">serve_up1, serve_dn1</text>
+
+  <!-- Car B floor -> distance calculator -->
+  <path d="M1580,1430 L1580,1462 L760,1462 L760,801 L580,801" class="h"/>
+  <path d="M1580,1430 L1580,1462 L760,1462 L760,801 L580,801" class="wb"/>
+  <text x="1180" y="1457" text-anchor="middle" class="cb">Car B's current floor → distance calculator <tspan class="cbm">(floor1)</tspan></text>
+  <text x="640" y="816" text-anchor="middle" class="cbm">floor1</text>
+
+  <!-- Car A answered -> next register values -->
+  <path d="M845,738 L730,738 L730,1025 L580,1025" class="h"/>
+  <path d="M845,738 L730,738 L730,1025 L580,1025" class="wa"/>
+  <text x="662" y="1006" text-anchor="middle" class="ca">Car A answered</text>
+  <text x="662" y="1019" text-anchor="middle" class="cam">serve_up0, serve_dn0</text>
+
+  <!-- Car A floor -> distance calculator -->
+  <path d="M1580,775 L1580,812 L780,812 L780,784 L580,784" class="h"/>
+  <path d="M1580,775 L1580,812 L780,812 L780,784 L580,784" class="wa"/>
+  <text x="1180" y="806" text-anchor="middle" class="ca">Car A's current floor → distance calculator <tspan class="cam">(floor0)</tspan></text>
+  <text x="640" y="779" text-anchor="middle" class="cam">floor0</text>
+
+  <!-- dispatcher -> Car B: hall calls -->
+  <path d="M580,355 L800,355 L800,967 L845,967" class="h"/>
+  <path d="M580,355 L800,355 L800,967 L845,967" class="wb"/>
+  <text x="690" y="348" text-anchor="middle" class="cb">hall calls → Car B</text>
+  <text x="690" y="371" text-anchor="middle" class="cbm">up_asg1, dn_asg1</text>
+
+  <!-- dispatcher -> Car A: hall calls -->
+  <path d="M580,312 L845,312" class="h"/>
+  <path d="M580,312 L845,312" class="wa"/>
+  <text x="712" y="304" text-anchor="middle" class="ca">hall calls → Car A</text>
+  <text x="712" y="327" text-anchor="middle" class="cam">up_asg0, dn_asg0</text>
+
+  <!-- ================= OUTPUTS ================= -->
+  <text x="345" y="1497" class="s">top-level output ports ↓ (read by the testbench and by the web simulator)</text>
+  <path d="M325,1480 L325,1508" class="w"/>
+  <rect x="50" y="1508" width="550" height="56" rx="6" class="io"/>
+  <text x="65" y="1529" class="t">Hall lamps (dispatcher registers)</text>
+  <text x="65" y="1550" class="m">up_pend up_asgd up_owner · dn_pend dn_asgd dn_owner</text>
+
+  <path d="M1020,1480 L1020,1508" class="wa"/>
+  <rect x="820" y="1508" width="400" height="56" rx="6" class="io"/>
+  <text x="835" y="1529" class="t" fill="#2b6cb0">Car A status (u_car0)</text>
+  <text x="835" y="1550" class="m">floor0 state0 dir0 timer0 calls0 door0</text>
+
+  <path d="M1440,1480 L1440,1508" class="wb"/>
+  <rect x="1240" y="1508" width="400" height="56" rx="6" class="io"/>
+  <text x="1255" y="1529" class="t" fill="#a8327f">Car B status (u_car1)</text>
+  <text x="1255" y="1550" class="m">floor1 state1 dir1 timer1 calls1 door1</text>
+
+  <!-- legend -->
+  <rect x="50" y="1578" width="22" height="14" rx="3" class="reg"/>
+  <text x="78" y="1590" class="b">clocked register</text>
+  <rect x="190" y="1578" width="22" height="14" rx="3" class="comb"/>
+  <text x="218" y="1590" class="b">combinational logic</text>
+  <rect x="355" y="1578" width="22" height="14" rx="3" class="fsm"/>
+  <text x="383" y="1590" class="b">state machine</text>
+  <rect x="490" y="1578" width="22" height="14" rx="3" class="io"/>
+  <text x="518" y="1590" class="b">inputs / outputs</text>
+  <path d="M640,1585 L680,1585" class="wa"/>
+  <text x="688" y="1590" class="b">Car A signal</text>
+  <path d="M790,1585 L830,1585" class="wb"/>
+  <text x="838" y="1590" class="b">Car B signal</text>
+  <path d="M940,1585 L980,1585" class="w"/>
+  <text x="988" y="1590" class="b">signal inside one block / shared input</text>
+
+  <!-- ================= GLOSSARY ================= -->
+  <rect x="20" y="1605" width="1660" height="90" rx="6" class="gl"/>
+  <text x="38" y="1626" class="t">Short names you will see in the Verilog code</text>
+  <text x="38" y="1647" class="b"><tspan class="m">pend</tspan> = pending · <tspan class="m">asgd</tspan> = assigned · <tspan class="m">asg</tspan> = assigned calls · <tspan class="m">up / dn</tspan> = up / down · <tspan class="m">btn</tspan> = button · <tspan class="m">dir</tspan> = direction · <tspan class="m">dist</tspan> = distance · <tspan class="m">serve</tspan> = calls answered · <tspan class="m">targets</tspan> = target floors · <tspan class="m">here</tspan> = current floor as a one-hot vector</text>
+  <text x="38" y="1665" class="b"><tspan class="m">enc</tspan> = encoder · <tspan class="m">dec</tspan> = decoder · <tspan class="m">d0 / d1</tspan> = distance for car 0 / car 1 · <tspan class="m">0 / 1</tspan> at the end of a name = Car A / Car B · <tspan class="m">u_</tspan> = instance (one placed copy of a module) · <tspan class="m">clk</tspan> = clock · <tspan class="m">rst</tspan> = reset</text>
+  <text x="38" y="1683" class="b"><tspan class="m">posedge</tspan> = rising (positive) clock edge · <tspan class="m">FSM</tspan> = finite state machine · states in code: <tspan class="m">IDLE</tspan>, <tspan class="m">MOVE_UP</tspan> = moving up, <tspan class="m">MOVE_DN</tspan> = moving down, <tspan class="m">DOOR</tspan> = door open · <tspan class="m">reg</tspan> = register · <tspan class="m">FF</tspan> = flip-flop</text>
+</svg>

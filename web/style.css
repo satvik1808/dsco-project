@@ -166,12 +166,10 @@ input[type=checkbox] { accent-color: var(--dark); }
 .car-panel.a .fsm .node.on rect { fill: var(--a); stroke: var(--a); }
 .car-panel.b .fsm .node.on rect { fill: var(--b); stroke: var(--b); }
 .fsm .node.on text { fill: var(--bg); }
-.fsm .edge { fill: none; stroke: var(--fsm-arrow); stroke-width: 1.2; }
-.fsm .mk { fill: var(--fsm-arrow); }
-.car-panel.a .fsm .mk.h { fill: var(--a); }
-.car-panel.b .fsm .mk.h { fill: var(--b); }
-.car-panel.a .fsm .edge.hot { stroke: var(--a); stroke-width: 2; }
-.car-panel.b .fsm .edge.hot { stroke: var(--b); stroke-width: 2; }
+.fsm .edge { fill: none; stroke: var(--edge); stroke-width: 1.2; }
+.fsm .mk { fill: var(--edge); }
+.fsm .mk.h { fill: var(--fsm-arrow); }
+.fsm .edge.hot { stroke: var(--fsm-arrow); stroke-width: 2; }
 .sigs { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; margin-top: 8px; font-size: 12px; }
 .sigs dt { color: var(--muted); }
 .sigs dd { margin: 0; }

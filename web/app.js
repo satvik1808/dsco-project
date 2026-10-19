@@ -75,25 +75,32 @@
   const carEl = [...layer.querySelectorAll('.car')];
   const cableEl = [...layer.querySelectorAll('.cable')];
 
-  // FSM diagram geometry
-  const NODES = [[42, 66], [124, 16], [124, 116], [202, 66]];
+  // FSM diagram geometry: IDLE left, MOVE_UP top, MOVE_DN bottom, DOOR right
+  const NODES = [[48, 85], [150, 22], [150, 148], [252, 85]];
+  const HW = 36, HH = 12;                 // half width / height of a state box
   const EDGES = [[0, 1], [0, 2], [0, 3], [1, 3], [2, 3], [3, 1], [3, 2], [3, 0], [1, 0], [2, 0]];
+  // Each pair of states has two straight parallel arrows, one each way, offset
+  // to the right of the direction of travel. Both ends stop GAP px outside the
+  // boxes so every arrowhead is fully visible.
   function edgePath(a, b) {
-    const [x1, y1] = NODES[a], [x2, y2] = NODES[b];
-    const dx = x2 - x1, dy = y2 - y1, len = Math.hypot(dx, dy);
-    const ux = dx / len, uy = dy / len;
-    const sx = x1 + ux * 26, sy = y1 + uy * 14, ex = x2 - ux * 30, ey = y2 - uy * 16;
-    const cx = (sx + ex) / 2 - uy * 12, cy = (sy + ey) / 2 + ux * 12;  // bend right of travel direction
-    return `M${sx.toFixed(1)},${sy.toFixed(1)} Q${cx.toFixed(1)},${cy.toFixed(1)} ${ex.toFixed(1)},${ey.toFixed(1)}`;
+    const [ax, ay] = NODES[a], [bx, by] = NODES[b];
+    const dx = bx - ax, dy = by - ay, len = Math.hypot(dx, dy);
+    const nx = -dy / len * 5, ny = dx / len * 5, GAP = 3;
+    const inBox = (x, y, [cx, cy]) => Math.abs(x - cx) <= HW + GAP && Math.abs(y - cy) <= HH + GAP;
+    const at = t => [ax + nx + dx * t, ay + ny + dy * t];
+    let t0 = 0, t1 = 1;
+    while (t0 < 1 && inBox(...at(t0), NODES[a])) t0 += 0.002;
+    while (t1 > 0 && inBox(...at(t1), NODES[b])) t1 -= 0.002;
+    const [sx, sy] = at(t0), [ex, ey] = at(t1);
+    return `M${sx.toFixed(1)},${sy.toFixed(1)} L${ex.toFixed(1)},${ey.toFixed(1)}`;
   }
   function fsmSvg(i) {
-    return `<svg class="fsm" viewBox="0 0 244 132" aria-label="Car ${CAR[i]} state machine">
+    return `<svg class="fsm" viewBox="0 0 300 170" aria-label="Car ${CAR[i]} state machine">
       <defs>
-        <marker id="m${i}d" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path class="mk" d="M0,0 L8,4 L0,8z"/></marker>
-        <marker id="m${i}h" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path class="mk h" d="M0,0 L8,4 L0,8z"/></marker>
+        <marker id="m${i}d" viewBox="0 0 8 8" refX="8" refY="4" markerUnits="userSpaceOnUse" markerWidth="7" markerHeight="7" orient="auto"><path class="mk" d="M0,0 L8,4 L0,8z"/></marker>
+        <marker id="m${i}h" viewBox="0 0 8 8" refX="8" refY="4" markerUnits="userSpaceOnUse" markerWidth="8" markerHeight="8" orient="auto"><path class="mk h" d="M0,0 L8,4 L0,8z"/></marker>
       </defs>
-      <!-- state boxes first, arrows after so they are drawn on top -->
-      ${NODES.map(([x, y], s) => `<g class="node" data-s="${s}"><rect x="${x - 34}" y="${y - 12}" width="68" height="24"/><text x="${x}" y="${y}">${STATE_NAMES[s]}</text></g>`).join('')}
+      ${NODES.map(([x, y], s) => `<g class="node" data-s="${s}"><rect x="${x - HW}" y="${y - HH}" width="${2 * HW}" height="${2 * HH}"/><text x="${x}" y="${y}">${STATE_NAMES[s]}</text></g>`).join('')}
       ${EDGES.map(([a, b]) => `<path class="edge" data-e="${a}${b}" d="${edgePath(a, b)}" marker-end="url(#m${i}d)"/>`).join('')}
     </svg>`;
   }
@@ -389,7 +396,7 @@
       carEl[i].querySelector('.door.r').style.transform = `translateX(${open * 92}%)`;
       const h = hotEdge[i];
       Object.entries(carUI[i].edges).forEach(([k, e]) => {
-        const hot = h && h.e === k && now - h.t < 1200;
+        const hot = h && h.e === k;      // the last transition taken stays green
         e.classList.toggle('hot', !!hot);
         e.setAttribute('marker-end', `url(#m${i}${hot ? 'h' : 'd'})`);
       });

@@ -30,6 +30,18 @@
   --glow: rgba(124, 77, 255, .18);
   color-scheme: light;
 }
+/* derived tokens: the fun themes build them from --v1..--v3, Midnight sets its own */
+:root {
+  --accent: var(--v1);
+  --grad-title: linear-gradient(90deg, var(--v1), var(--v2) 55%, var(--v3));
+  --grad-strip: linear-gradient(90deg, var(--v1), var(--v2), var(--v3));
+  --grad-btn: linear-gradient(135deg, #7c3aed, #db2777);
+  --btn-text: #fff;
+  --blob1: color-mix(in srgb, var(--v1) 16%, transparent);
+  --blob2: color-mix(in srgb, var(--v2) 13%, transparent);
+  --blob3: color-mix(in srgb, var(--v3) 12%, transparent);
+  --panel-shadow: 0 10px 30px -18px rgba(70, 40, 160, .45);
+}
 /* dark theme: follows the system unless the toggle picked light */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -47,6 +59,32 @@
   --border: #352c63; --v1: #a78bfa; --v2: #f472b6; --v3: #fdba74; --shaft: #211b40; --glow: rgba(167, 139, 250, .22);
   color-scheme: dark;
 }
+/* Midnight: near-black and calm, one cool accent, glow kept on the active things */
+:root[data-theme="midnight"] {
+  --bg: #0c0e13; --page: #050609; --text: #e6e8ee; --muted: #8a909c; --line: #1a1e26; --dark: #e6e8ee; --fill: #12151c;
+  --a: #6ea8ff; --a-soft: #15233d; --b: #f2b25c; --b-soft: #33260f; --hot: #ff6b7d; --ok: #4ade80;
+  --dark-hover: #ffffff; --edge: #4a505c; --fsm-arrow: #4ade80; --bit-off: #3b414c; --grid: #161a21; --log-line: #141820;
+  --border: #1e232d; --shaft: #0f1218; --glow: rgba(110, 168, 255, .16);
+  --accent: #7c8cff;
+  --grad-title: linear-gradient(90deg, #f4f5f8, #9aa3b5);
+  --grad-strip: linear-gradient(90deg, transparent, rgba(124, 140, 255, .55), transparent);
+  --grad-btn: linear-gradient(135deg, #2b3350, #1a2036);
+  --btn-text: #dfe4ff;
+  --blob1: rgba(124, 140, 255, .07); --blob2: rgba(110, 168, 255, .03); --blob3: rgba(242, 178, 92, .025);
+  --panel-shadow: 0 0 0 1px rgba(124, 140, 255, .04), 0 18px 40px -24px rgba(0, 0, 0, .9);
+  color-scheme: dark;
+}
+:root[data-theme="midnight"] .btn.primary, :root[data-theme="midnight"] .seg button.on {
+  box-shadow: 0 0 0 1px rgba(124, 140, 255, .35), 0 0 18px -4px rgba(124, 140, 255, .55);
+}
+:root[data-theme="midnight"] .car { box-shadow: 0 0 22px -4px var(--c); }
+:root[data-theme="midnight"] .panel::before { left: 0; right: 0; height: 1px; border-radius: 0; }
+:root[data-theme="midnight"] .bit.one { box-shadow: 0 0 10px -2px var(--accent); }
+:root[data-theme="midnight"] .bit.one.ca { box-shadow: 0 0 10px -2px var(--a); }
+:root[data-theme="midnight"] .bit.one.cb { box-shadow: 0 0 10px -2px var(--b); }
+:root[data-theme="midnight"] .floor-label { color: var(--muted); }
+:root[data-theme="midnight"] .floor:last-child { border-bottom-color: var(--border); }
+:root[data-theme="midnight"] h1 .logo { box-shadow: 0 0 20px -4px rgba(124, 140, 255, .6); }
 * { box-sizing: border-box; }
 html, body { margin: 0; }
 body {
@@ -256,9 +294,9 @@ h2 { font-size: 12.5px; letter-spacing: .06em; }
 /* ---------- fun theme ---------- */
 body {
   background:
-    radial-gradient(900px 500px at 0% 0%, color-mix(in srgb, var(--v1) 16%, transparent), transparent 70%),
-    radial-gradient(800px 500px at 100% 10%, color-mix(in srgb, var(--v2) 13%, transparent), transparent 70%),
-    radial-gradient(900px 600px at 50% 100%, color-mix(in srgb, var(--v3) 12%, transparent), transparent 70%),
+    radial-gradient(900px 500px at 0% 0%, var(--blob1), transparent 70%),
+    radial-gradient(800px 500px at 100% 10%, var(--blob2), transparent 70%),
+    radial-gradient(900px 600px at 50% 100%, var(--blob3), transparent 70%),
     var(--page);
   background-attachment: fixed;
 }
@@ -270,10 +308,10 @@ body {
 h1 { font: 700 26px/1.1 var(--fun); display: flex; align-items: center; gap: 10px; }
 h1 .logo {
   display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; font-size: 22px;
-  background: linear-gradient(135deg, #7c3aed, #db2777); box-shadow: 0 6px 16px -6px #db2777;
+  background: var(--grad-btn); box-shadow: 0 6px 16px -6px var(--accent);
 }
 h1 .grad {
-  background: linear-gradient(90deg, var(--v1), var(--v2) 55%, var(--v3));
+  background: var(--grad-title);
   -webkit-background-clip: text; background-clip: text; color: transparent;
 }
 h2 { font-family: var(--fun); font-weight: 600; font-size: 14px; letter-spacing: .04em; color: var(--text); }
@@ -281,35 +319,38 @@ h2 { font-family: var(--fun); font-weight: 600; font-size: 14px; letter-spacing:
 /* panels: rounded cards with a colourful strip on top */
 .panel {
   position: relative; border-radius: 18px; border: 1px solid var(--border);
-  box-shadow: 0 10px 30px -18px rgba(70, 40, 160, .45);
+  box-shadow: var(--panel-shadow);
 }
 .panel::before {
   content: ""; position: absolute; left: 18px; right: 18px; top: 0; height: 4px; border-radius: 0 0 4px 4px;
-  background: linear-gradient(90deg, var(--v1), var(--v2), var(--v3));
+  background: var(--grad-strip);
 }
-.car-panel.a::before { background: linear-gradient(90deg, var(--a), color-mix(in srgb, var(--a) 40%, var(--v1))); }
-.car-panel.b::before { background: linear-gradient(90deg, var(--b), color-mix(in srgb, var(--b) 40%, var(--v2))); }
+.car-panel.a::before { background: linear-gradient(90deg, var(--a), color-mix(in srgb, var(--a) 40%, var(--accent))); }
+.car-panel.b::before { background: linear-gradient(90deg, var(--b), color-mix(in srgb, var(--b) 40%, var(--accent))); }
 .panel-head { border-bottom: 1px dashed var(--border); }
 .car-panel .dot, .shaft-head .dot { box-shadow: 0 0 0 3px var(--glow); }
 
 /* buttons: pills that lift on hover */
 .btn, .seg button { font-family: var(--fun); font-weight: 500; border-radius: 999px; transition: transform .12s, box-shadow .12s, background .12s; }
-.btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 14px -8px var(--v1); }
+.btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 14px -8px var(--accent); }
 .btn.primary, .seg button.on, .wave-zoom .btn.on {
-  background: linear-gradient(135deg, #7c3aed, #db2777); color: #fff; border-color: transparent;
+  background: var(--grad-btn); color: var(--btn-text); border-color: transparent;
 }
-.btn.primary:hover { background: linear-gradient(135deg, #7c3aed, #db2777); filter: brightness(1.1); }
-.btn.on { border-color: var(--v1); color: var(--v1); }
+.btn.primary:hover { background: var(--grad-btn); filter: brightness(1.1); }
+.btn.on { border-color: var(--accent); color: var(--accent); }
+.theme-pick { font: 500 14px var(--fun); color: var(--text); background: var(--bg); border: 1px solid var(--border);
+  border-radius: 999px; padding: 6px 12px; cursor: pointer; }
+.theme-pick:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .seg { background: var(--fill); border: 1px solid var(--border); border-radius: 999px; padding: 3px; gap: 2px; }
 .seg button, .seg button + button { border: 0; background: transparent; border-radius: 999px; }
 .seg button:first-child, .seg button:last-child { border-radius: 999px; }
-input[type=range], input[type=checkbox] { accent-color: var(--v1); }
+input[type=range], input[type=checkbox] { accent-color: var(--accent); }
 
 /* building */
 .shaft-cell { background: linear-gradient(180deg, color-mix(in srgb, var(--shaft) 70%, var(--bg)), var(--shaft)); border-color: var(--border); }
 .floor:nth-child(odd) .shaft-cell { background: var(--shaft); }
-.floor:last-child { border-bottom: 3px solid var(--v1); }
-.floor-label { font-weight: 600; color: var(--v1); }
+.floor:last-child { border-bottom: 3px solid var(--accent); }
+.floor-label { font-weight: 600; color: var(--accent); }
 .shaft-head em { border-radius: 999px; border-color: var(--border); background: var(--bg); font-weight: 600; }
 .cable { background: var(--edge); }
 .car { border-radius: 12px; box-shadow: 0 8px 18px -8px var(--c); }
@@ -337,10 +378,10 @@ input[type=range], input[type=checkbox] { accent-color: var(--v1); }
 
 /* registers: little rounded tiles */
 .bit { margin: 1px; border-radius: 6px; border-color: var(--border); }
-.bit.one { background: var(--v1); border-color: var(--v1); }
+.bit.one { background: var(--accent); border-color: var(--accent); }
 .decision {
-  border: 0; border-left: 4px solid var(--v1); border-radius: 10px;
-  background: linear-gradient(90deg, color-mix(in srgb, var(--v1) 9%, var(--bg)), var(--fill));
+  border: 0; border-left: 4px solid var(--accent); border-radius: 10px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 9%, var(--bg)), var(--fill));
 }
 .badge { border-radius: 999px; padding: 1px 8px; background: color-mix(in srgb, var(--ok) 12%, transparent); }
 .badge.bad { background: color-mix(in srgb, var(--hot) 12%, transparent); }

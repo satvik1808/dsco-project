@@ -346,7 +346,7 @@
   function readTheme() {
     const cs = getComputedStyle(document.documentElement), v = n => cs.getPropertyValue(n).trim();
     theme = { muted: v('--muted'), grid: v('--grid'), a: v('--a'), b: v('--b') };
-    $('theme').textContent = cs.colorScheme === 'dark' ? 'Light' : 'Dark';
+    $('theme').value = document.documentElement.dataset.theme || 'midnight';
   }
   function drawChart() {
     const dpr = window.devicePixelRatio || 1, w = chart.clientWidth, h = 150;
@@ -502,10 +502,9 @@
   $('reset').onclick = resetSim;
   $('speed').oninput = e => { hz = +e.target.value; $('speedVal').textContent = hz + ' Hz'; };
   $('traffic').onchange = e => { traffic = e.target.checked; };
-  $('theme').onclick = () => {
-    const t = $('theme').textContent === 'Dark' ? 'dark' : 'light';
-    document.documentElement.dataset.theme = t;
-    try { localStorage.setItem('theme', t); } catch (e) {}
+  $('theme').onchange = e => {
+    document.documentElement.dataset.theme = e.target.value;
+    try { localStorage.setItem('theme', e.target.value); } catch (err) {}
     readTheme();
   };
   matchMedia('(prefers-color-scheme: dark)').addEventListener('change', readTheme);
@@ -521,7 +520,7 @@
       + ' · shift-click to clear a picked song';
   });
   document.addEventListener('keydown', e => {
-    if (e.target.tagName === 'INPUT') return;
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
     if (e.code === 'Space') { e.preventDefault(); setRunning(!running); }
     if (e.key === 's' || e.key === 'ArrowRight') { setRunning(false); tick(true); }
   });

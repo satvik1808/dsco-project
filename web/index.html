@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Smart Elevator</title>
-  <script>try { const t = localStorage.getItem('theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}</script>
+  <script>let t = null; try { t = localStorage.getItem('theme'); } catch (e) {} document.documentElement.dataset.theme = t || 'midnight';</script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=JetBrains+Mono:wght@400;600&family=Nunito:wght@400;600;700&display=swap">
@@ -29,7 +29,11 @@
       <label class="toggle" title="Button beeps, door chime, and music while the cars move"><input id="sound" type="checkbox" checked> sound</label>
       <button id="music" class="btn" title="Pick the song that plays while the cars move">♪ music</button>
       <input id="musicFile" type="file" accept="audio/*" hidden>
-      <button id="theme" class="btn" title="Switch between light and dark theme">Dark</button>
+      <select id="theme" class="theme-pick" title="Colour theme" aria-label="Colour theme">
+        <option value="midnight">🌑 Midnight</option>
+        <option value="dark">🌌 Fun dark</option>
+        <option value="light">☀️ Fun light</option>
+      </select>
     </div>
   </header>
 

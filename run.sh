@@ -11,6 +11,7 @@ iverilog -g2005 -Wall -o build/sim.vvp \
     tb/tb_elevator_coordinator.v
 vvp -n build/sim.vvp
 node scripts/verify.js
+node scripts/vcd2js.js
 
 echo "Waveform: build/elevator.vcd (open with GTKWave)"
 echo "Website:  open web/index.html"

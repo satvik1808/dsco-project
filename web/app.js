@@ -20,6 +20,13 @@
   const clone = o => JSON.parse(JSON.stringify(o));
   const bit = (v, i) => (v >> i) & 1;
 
+  // waveform viewer: real VCD in replay mode, signals recorded from the JS model in live mode
+  const T = k => 10 * k + 15;        // testbench time (ns) of the posedge that produces register state #k
+  const viewer = WaveViewer.create($('waves'));
+  const vcdSource = window.VERILOG_WAVES ? WaveViewer.fromVcd(window.VERILOG_WAVES) : null;
+  const vcdWidth = vcdSource ? (p => (vcdSource.byPath.get(p) || {}).width) : null;
+  let liveSource = null;
+
   // ---------------- simulation state ----------------
   let mode = 'live';
   let running = true;
@@ -147,6 +154,7 @@
   // ---------------- inputs ----------------
   function press(kind, f) {
     if (mode !== 'live') return;
+    Sound.press();
     pending[kind] |= 1 << f;
     if (!running) tick(true);           // paused: clock one edge so the press is visible
   }
@@ -188,6 +196,8 @@
       model.step(inputs);
       cur = clone(model.regs);
       info = model.last;
+      liveSource.record(info.sig, T(cur.cycle - 1) + 1);       // inputs + combinational nets
+      liveSource.record(model.regSignals(cur), T(cur.cycle));  // registers update on posedge
     } else {
       if (replayIdx >= TRACE.rows.length) { resetSim(); return; }
       inputs = unpack(TRACE.stim[replayIdx]);
@@ -203,14 +213,17 @@
     afterTick(inputs, info, match);
   }
 
+  const doorOpenness = (c, age) => c.state === S_DOOR ? Math.min(1, age / 3, (DOOR_TICKS - c.timer) / 3) : 0;
+
   // ---------------- per-tick bookkeeping & DOM updates ----------------
   function afterTick(inputs, info, match) {
     for (let i = 0; i < 2; i++) {
       const p = prev.cars[i], c = cur.cars[i];
       doorAge[i] = c.state === S_DOOR ? (p.state === S_DOOR ? doorAge[i] + 1 : 1) : 0;
       doorPrev[i] = doorCur[i];
-      doorCur[i] = c.state === S_DOOR ? Math.min(1, doorAge[i] / 3, (DOOR_TICKS - c.timer) / 3) : 0;
+      doorCur[i] = doorOpenness(c, doorAge[i]);
       if (p.state !== c.state) hotEdge[i] = { e: `${p.state}${c.state}`, t: performance.now() };
+      if (c.state === S_DOOR && p.state !== S_DOOR) Sound.ding();
       if (c.state === S_DOOR && p.state !== S_DOOR) log(`<span class="c${CAR[i].toLowerCase()}">Car ${CAR[i]}</span> doors open at F${c.floor}`);
     }
     logEvents(inputs, info);
@@ -379,6 +392,12 @@
       });
     }
     drawChart();
+    const cursorT = T(cur.cycle) + 1 + frac * 8;
+    if (mode === 'live') liveSource.setEnd(cursorT);
+    viewer.setCursor(cursorT);
+    viewer.render();
+    Sound.setMoving(running && cur.cars.some(c => c.state === S_UP || c.state === S_DN));
+    Sound.update(Math.min(dt, 250) / 1000);
     requestAnimationFrame(frame);
   }
 
@@ -395,8 +414,59 @@
     $('cycle').textContent = 0;
     $('matchBadge').hidden = true;
     $('stats').textContent = '';
+    liveSource = WaveViewer.live(vcdWidth);
+    liveSource.record(Object.assign({ 'tb.rst': 1 }, model.regSignals(cur)), 0);
+    liveSource.record({ 'tb.rst': 0 }, 16);
+    const src = mode === 'live' ? liveSource : vcdSource;
+    viewer.setSource(src);
+    $('waveSrc').textContent = src ? src.label : 'run ./run.sh to generate web/verilog_waves.js';
     renderPanels();
   }
+
+  // Replay: jump straight to register state #k of the Verilog trace
+  function seekReplay(k) {
+    k = Math.max(0, Math.min(TRACE.rows.length, k));
+    setRunning(false);
+    model.reset();
+    const r0 = clone(model.regs);
+    const regsAt = j => (j === 0 ? r0 : rowToRegs(TRACE.rows[j - 1]));
+    cur = regsAt(k); prev = k ? regsAt(k - 1) : cur;
+    replayIdx = k; stepAnimAt = 0; acc = 0;
+    history = [];
+    for (let j = Math.max(0, k - 399); j <= k; j++) { const r = regsAt(j); history.push([carPos(r.cars[0]), carPos(r.cars[1])]); }
+    for (let i = 0; i < 2; i++) {
+      let age = 0;
+      for (let j = k; j > 0 && regsAt(j).cars[i].state === S_DOOR; j--) age++;
+      doorAge[i] = age; doorCur[i] = doorPrev[i] = doorOpenness(cur.cars[i], age);
+    }
+    hotEdge = [null, null];
+    // rebuild wait-time statistics up to cycle k
+    waitStart = { up: {}, dn: {} }; servedCount = 0; waitTotal = 0;
+    for (let j = 1; j <= k; j++) {
+      const a = regsAt(j - 1), b = regsAt(j);
+      for (const d of ['up', 'dn']) for (let f = 0; f < N; f++) {
+        const was = bit(a[d + '_pend'], f), is = bit(b[d + '_pend'], f);
+        if (!was && is) waitStart[d][f] = j;
+        if (was && !is) { servedCount++; waitTotal += j - waitStart[d][f]; }
+      }
+    }
+    $('stats').textContent = servedCount ? `served ${servedCount} · avg wait ${(waitTotal / servedCount).toFixed(0)} cyc` : '';
+    logEl.innerHTML = '';
+    log(`jumped to cycle ${k} (from the waveform)`);
+    $('decision').textContent = 'Paused after a jump; press Run or Step clk to continue.';
+    $('cycle').textContent = k;
+    if (k) {
+      model.load(prev); model.step(unpack(TRACE.stim[k - 1]));
+      const ok = sameRegs(model.regs, cur), badge = $('matchBadge');
+      badge.hidden = false; badge.className = 'badge' + (ok ? '' : ' bad'); badge.textContent = ok ? 'Verilog = JS ✓' : 'Verilog ≠ JS';
+    }
+    renderPanels();
+  }
+  viewer.onClick = t => {
+    if (mode !== 'replay') return false;          // live: just place a marker
+    seekReplay(Math.floor((t - 15) / 10));
+    return true;
+  };
 
   function setMode(m) {
     mode = m;
@@ -422,17 +492,18 @@
   $('reset').onclick = resetSim;
   $('speed').oninput = e => { hz = +e.target.value; $('speedVal').textContent = hz + ' Hz'; };
   $('traffic').onchange = e => { traffic = e.target.checked; };
+  $('sound').onchange = e => Sound.setEnabled(e.target.checked);
   document.addEventListener('keydown', e => {
     if (e.target.tagName === 'INPUT') return;
     if (e.code === 'Space') { e.preventDefault(); setRunning(!running); }
     if (e.key === 's' || e.key === 'ArrowRight') { setRunning(false); tick(true); }
   });
 
-  // #replay starts in replay mode, #replay@1200 also fast-forwards to cycle 1200
-  const m = location.hash.match(/^#replay(?:@(\d+))?$/);
-  if (m && TRACE) {
-    setMode('replay');
-    for (let k = +(m[1] || 0); k > 0; k--) tick(false);
+  // #replay starts in replay mode; #replay@1200 / #live@300 also fast-forward that many cycles
+  const m = location.hash.match(/^#(replay|live)(?:@(\d+))?$/);
+  if (m && (m[1] === 'live' || TRACE)) {
+    setMode(m[1]);
+    for (let k = +(m[2] || 0); k > 0; k--) tick(false);
   } else resetSim();
   requestAnimationFrame(frame);
 })();

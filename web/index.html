@@ -22,6 +22,7 @@
       <button id="reset" class="btn">Reset</button>
       <label class="speed">clk <input id="speed" type="range" min="1" max="60" value="12"> <span id="speedVal">12 Hz</span></label>
       <label class="toggle" id="trafficWrap"><input id="traffic" type="checkbox" checked> random traffic</label>
+      <label class="toggle" title="Button beeps, door chime, and music while the cars move (web/songbird.mp3 if present)"><input id="sound" type="checkbox" checked> sound</label>
     </div>
   </header>
 
@@ -66,10 +67,21 @@
         <ol class="log" id="log"></ol>
       </div>
     </section>
+
+    <!-- Waveforms ------------------------------------------------------ -->
+    <section class="panel waves-panel">
+      <div class="panel-head"><h2>Waveforms</h2><span class="meta" id="waveSrc"></span></div>
+      <div id="waves"></div>
+      <p class="hint">Drag or scroll to pan · ctrl + scroll (or pinch) to zoom · click to place a marker, click it again to clear.
+        In Verilog replay, clicking the waveform jumps the simulation to that time.</p>
+    </section>
   </main>
 
   <script src="elevator_rtl.js"></script>
   <script src="verilog_trace.js"></script>
+  <script src="verilog_waves.js"></script>
+  <script src="waves.js"></script>
+  <script src="sound.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

@@ -5,6 +5,15 @@ hall-call dispatcher, plus an animated website. The website runs a
 cycle-accurate model of the same RTL and can replay the Icarus Verilog
 simulation trace.
 
+![Website in Verilog replay mode](docs/images/website.png)
+
+## Report
+
+The full project report covers the design, every digital-electronics concept used, verification, results and sustainability.
+
+- [docs/REPORT.md](docs/REPORT.md): readable on GitHub
+- [docs/REPORT.pdf](docs/REPORT.pdf): for printing or submission
+
 ## Run it
 
 ```sh
@@ -25,7 +34,11 @@ Waveforms are written to `build/elevator.vcd`; open them with GTKWave.
 | `tb/tb_elevator_coordinator.v` | Testbench: stimulus from file, trace + VCD, safety and liveness checks |
 | `scripts/gen_stimulus.js` | Seeded random button presses → `build/stim.hex` |
 | `scripts/verify.js` | Runs the JS model on the same stimulus and compares every register every cycle |
+| `scripts/vcd2js.js` | Converts `build/elevator.vcd` for the website and checks every internal net of the JS model against it |
 | `web/elevator_rtl.js` | JS port of the RTL (1:1 with the Verilog equations) |
+| `web/waves.js` | GTKWave-style waveform viewer |
+| `web/sound.js` | Button beeps, door chime, music while the cars move |
+| `docs/` | Project report (Markdown + PDF) and images |
 | `web/index.html`, `app.js`, `style.css` | The visualisation |
 
 ## Design
@@ -55,11 +68,21 @@ direction of travel, or for any hall call when nothing is left beyond it.
 ## Verification
 
 - **Testbench checks:** a door is never open outside `DOOR`, floors stay in range, and no hall call waits more than 600 cycles (starvation check).
-- **Co-simulation:** `scripts/verify.js` steps the JS model on the same stimulus and compares all 16 registers on every cycle against the Verilog trace. Replay mode in the website repeats this check live (the "Verilog = JS ✓" badge).
+- **Co-simulation:**
+  - `scripts/verify.js` steps the JS model on the same stimulus and compares all 16 registers on every cycle against the Verilog trace. Replay mode in the website repeats this check live (the "Verilog = JS ✓" badge).
+  - `scripts/vcd2js.js` does the same for 145 named signals in the VCD, including combinational nets such as `next_dir`, `stop_up`, `cost0` and `pick_floor`.
 
 ## Website
 
 - **Live RTL:** click hall ▲▼ or cabin buttons, or let random traffic run.
 - **Verilog replay:** plays back `build/trace_verilog.txt`. Open `web/index.html#replay@1200` to jump to cycle 1200.
 - **Views:** FSM diagrams with the last transition highlighted, dispatcher register bits, the cost breakdown for each assignment, a position-vs-time chart, and an event log.
+- **Waveforms:** a GTKWave-style viewer under the animation.
+  - In replay mode it shows the real `build/elevator.vcd`; in live mode it records the same signals, with the same names, from the JS model.
+  - Presets: Top I/O, Car A, Car B, Dispatcher. Type in the search box to add any other signal.
+  - Drag or scroll to pan, ctrl + scroll to zoom, click to place a marker. In replay mode, a click jumps the simulation to that time.
+- **Sound** (toggle in the header):
+  - a beep on every button press and a chime when doors open
+  - music that fades in while any car is moving
+  - for the music, put your own copy of a track at `web/songbird.mp3`; without it, an original synthesized lounge loop plays
 - **Keys:** Space runs or pauses; `s` or → steps one clock.

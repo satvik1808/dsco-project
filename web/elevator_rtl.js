@@ -58,8 +58,8 @@
       const stopUp = (here & (c.calls | upAsg)) !== 0 || ((here & dnAsg) !== 0 && !anyAbove);
       const stopDn = (here & (c.calls | dnAsg)) !== 0 || ((here & upAsg) !== 0 && !anyBelow);
 
-      return { here, targets, anyAbove, anyBelow, anyHere, nextDir, inDoor,
-               serveUp, serveDn, serveCar, serving, stopUp, stopDn };
+      return { here, targets, maskAbove, maskBelow, anyAbove, anyBelow, anyHere, wantUp, wantDn,
+               nextDir, inDoor, serveUp, serveDn, serveCar, serving, stopUp, stopDn };
     }
 
     // ---- elevator_car.v sequential block ----
@@ -149,7 +149,42 @@
         dn_owner: ((r.dn_owner & ~newDn) | (pickCar1 ? newDn : 0)) & MASK,
       };
 
+      // combinational nets for this cycle, named as in the Verilog hierarchy (tb.dut.*)
+      const sig = {
+        'tb.hall_up_btn': hallUp, 'tb.hall_dn_btn': hallDn, 'tb.car_btn0': carBtn[0], 'tb.car_btn1': carBtn[1],
+        'tb.dut.u_dispatch.pick_valid': pick ? 1 : 0, 'tb.dut.u_dispatch.pick_up': pu ? 1 : 0,
+        'tb.dut.u_dispatch.pick_floor': pf, 'tb.dut.u_dispatch.pick_vec': pickVec,
+        'tb.dut.u_dispatch.load0': load[0], 'tb.dut.u_dispatch.load1': load[1],
+        'tb.dut.u_dispatch.cost0': costs[0], 'tb.dut.u_dispatch.cost1': costs[1],
+        'tb.dut.u_dispatch.pick_car1': pickCar1 ? 1 : 0,
+        'tb.dut.u_dispatch.new_up': newUp, 'tb.dut.u_dispatch.new_dn': newDn,
+        'tb.dut.u_dispatch.served_up': servedUp, 'tb.dut.u_dispatch.served_dn': servedDn,
+      };
+      for (const pre of ['tb.', 'tb.dut.', 'tb.dut.u_dispatch.']) {
+        sig[pre + 'hall_up_btn'] = hallUp; sig[pre + 'hall_dn_btn'] = hallDn;
+      }
+      sig['tb.dut.car_btn0'] = carBtn[0]; sig['tb.dut.car_btn1'] = carBtn[1];
+      for (let i = 0; i < 2; i++) {
+        const c = 'tb.dut.u_car' + i + '.', q = k[i];
+        Object.assign(sig, {
+          [c + 'car_btn']: carBtn[i], [c + 'hall_up_asg']: upAsg[i], [c + 'hall_dn_asg']: dnAsg[i],
+          [c + 'here']: q.here, [c + 'targets']: q.targets, [c + 'mask_above']: q.maskAbove, [c + 'mask_below']: q.maskBelow,
+          [c + 'any_above']: +q.anyAbove, [c + 'any_below']: +q.anyBelow, [c + 'any_here']: +q.anyHere,
+          [c + 'want_up']: +q.wantUp, [c + 'want_dn']: +q.wantDn, [c + 'next_dir']: q.nextDir,
+          [c + 'in_door']: +q.inDoor, [c + 'door_open']: +q.inDoor,
+          [c + 'serve_up']: q.serveUp, [c + 'serve_dn']: q.serveDn, [c + 'serve_car']: +q.serveCar, [c + 'serving']: +q.serving,
+          [c + 'stop_up']: +q.stopUp, [c + 'stop_dn']: +q.stopDn,
+        });
+        for (const pre of ['tb.dut.', 'tb.dut.u_dispatch.']) {
+          sig[pre + 'up_asg' + i] = upAsg[i]; sig[pre + 'dn_asg' + i] = dnAsg[i];
+          sig[pre + 'serve_up' + i] = q.serveUp; sig[pre + 'serve_dn' + i] = q.serveDn;
+          sig[pre + 'ndir' + i] = q.nextDir;
+        }
+        sig['tb.door' + i] = +q.inDoor; sig['tb.dut.door' + i] = +q.inDoor;
+      }
+
       last = {
+        sig,
         pick: pick ? { up: pu, floor: pf, car: pickCar1 ? 1 : 0, costs, load } : null,
         served: [0, 1].map(i => ({ up: k[i].serveUp, dn: k[i].serveDn, car: k[i].serveCar ? k[i].here : 0 })),
         nextDir: [k[0].nextDir, k[1].nextDir],
@@ -158,13 +193,31 @@
       return r;
     }
 
+    // Registered values, named as in the Verilog hierarchy (they change on posedge)
+    function regSignals(x) {
+      const s = {};
+      const hall = ['up_pend', 'up_asgd', 'up_owner', 'dn_pend', 'dn_asgd', 'dn_owner'];
+      for (const h of hall) for (const pre of ['tb.', 'tb.dut.', 'tb.dut.u_dispatch.']) s[pre + h] = x[h];
+      for (let i = 0; i < 2; i++) {
+        const c = x.cars[i], u = 'tb.dut.u_car' + i + '.';
+        s[u + 'floor'] = c.floor; s[u + 'state'] = c.state; s[u + 'dir'] = c.dir; s[u + 'timer'] = c.timer; s[u + 'car_calls'] = c.calls;
+        for (const pre of ['tb.', 'tb.dut.']) {
+          s[pre + 'floor' + i] = c.floor; s[pre + 'state' + i] = c.state; s[pre + 'dir' + i] = c.dir;
+          s[pre + 'timer' + i] = c.timer; s[pre + 'calls' + i] = c.calls;
+        }
+        const d = 'tb.dut.u_dispatch.';
+        s[d + 'floor' + i] = c.floor; s[d + 'state' + i] = c.state; s[d + 'dir' + i] = c.dir; s[d + 'calls' + i] = c.calls;
+      }
+      return s;
+    }
+
     // Load a register snapshot (used by trace replay mode)
     function load(snapshot) { r = JSON.parse(JSON.stringify(snapshot)); last = null; }
 
     reset();
     return {
       params: p,
-      reset, step, load,
+      reset, step, load, regSignals,
       get regs() { return r; },
       get last() { return last; },
       // combinational next_dir for display, without clocking

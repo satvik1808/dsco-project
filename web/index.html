@@ -23,7 +23,9 @@
       <button id="reset" class="btn">Reset</button>
       <label class="speed">clk <input id="speed" type="range" min="1" max="60" value="12"> <span id="speedVal">12 Hz</span></label>
       <label class="toggle" id="trafficWrap"><input id="traffic" type="checkbox" checked> random traffic</label>
-      <label class="toggle" title="Button beeps, door chime, and music while the cars move (web/songbird.mp3 if present)"><input id="sound" type="checkbox" checked> sound</label>
+      <label class="toggle" title="Button beeps, door chime, and music while the cars move"><input id="sound" type="checkbox" checked> sound</label>
+      <button id="music" class="btn" title="Pick the song that plays while the cars move">♪ music</button>
+      <input id="musicFile" type="file" accept="audio/*" hidden>
       <button id="theme" class="btn" title="Switch between light and dark theme">Dark</button>
     </div>
   </header>

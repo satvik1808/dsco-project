@@ -54,14 +54,45 @@
   }
 
   // ---------------- music ----------------
+  // Source order: a track the viewer picked (kept in IndexedDB), else web/songbird.mp3,
+  // else the synthesised loop. The synth only stands in until a file is ready.
   const audio = new Audio();
-  let useFile = null;              // null = still checking, true/false once known
+  let useFile = false, picked = false, onTrack = () => {};
   audio.loop = true;
   audio.preload = 'auto';
-  audio.addEventListener('canplaythrough', () => { if (useFile === null) useFile = true; }, { once: true });
-  audio.addEventListener('error', () => { useFile = false; });
+  audio.addEventListener('canplay', () => { useFile = true; stopSynth(); onTrack(trackName()); });
+  audio.addEventListener('error', () => { useFile = false; onTrack(trackName()); });
+
+  function trackName() { return useFile ? (picked ? picked : MUSIC_FILE) : null; }
+
+  function setFile(blob, name) {
+    picked = name || 'your track';
+    const wasPlaying = !audio.paused;
+    useFile = false;
+    audio.src = URL.createObjectURL(blob);
+    if (wasPlaying) audio.play().catch(() => {});
+  }
+
+  // remember a picked track across visits (one record in IndexedDB)
+  function db(mode, fn) {
+    try {
+      const req = indexedDB.open('elevator-music', 1);
+      req.onupgradeneeded = () => req.result.createObjectStore('t');
+      req.onsuccess = () => { try { fn(req.result.transaction('t', mode).objectStore('t')); } catch (e) {} };
+    } catch (e) {}
+  }
+  function pick(file) {
+    setFile(file, file.name);
+    db('readwrite', s => s.put({ blob: file, name: file.name }, 'track'));
+  }
+  function forget() {
+    picked = false; useFile = false;
+    db('readwrite', s => s.delete('track'));
+    audio.src = MUSIC_FILE;
+  }
+
   audio.src = MUSIC_FILE;
-  setTimeout(() => { if (useFile === null) useFile = false; }, 4000);
+  db('readonly', s => { const r = s.get('track'); r.onsuccess = () => { if (r.result) setFile(r.result.blob, r.result.name); }; });
 
   // fallback: an original slow lounge progression (Fmaj7 Em7 Dm7 Cmaj7) on soft keys + bass
   const CHORDS = [[53, 57, 60, 64], [52, 55, 59, 62], [50, 53, 57, 60], [48, 52, 55, 59]];
@@ -69,6 +100,11 @@
   const midi = n => 440 * Math.pow(2, (n - 69) / 12);
   let synthGain = null, nextBeat = 0, beat = 0;
   const BEAT = 0.5;                // seconds per beat (120 bpm, half-time feel)
+
+  function stopSynth() {
+    if (synthGain && ctx) synthGain.gain.setTargetAtTime(0, ctx.currentTime, 0.05);
+    nextBeat = 0;
+  }
 
   function scheduleSynth() {
     if (!synthGain) { synthGain = ctx.createGain(); synthGain.gain.value = 0; synthGain.connect(master); }
@@ -97,7 +133,7 @@
       audio.volume = musicVol * 0.7;
       if (musicVol > 0 && audio.paused) audio.play().catch(() => {});
       if (musicVol === 0 && !audio.paused) audio.pause();
-    } else if (useFile === false) {
+    } else {
       if (musicVol > 0) scheduleSynth();
       if (synthGain) synthGain.gain.setTargetAtTime(musicVol, ctx.currentTime, 0.05);
       if (musicVol === 0) nextBeat = 0;
@@ -105,7 +141,8 @@
   }
 
   root.Sound = {
-    press, ding, update,
+    press, ding, update, pick, forget,
+    onTrack(fn) { onTrack = fn; fn(trackName()); },
     setMoving(m) { moving = m; },
     setEnabled(e) { enabled = e; if (e) ensure(); },
     get enabled() { return enabled; },

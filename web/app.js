@@ -506,6 +506,15 @@
   matchMedia('(prefers-color-scheme: dark)').addEventListener('change', readTheme);
   readTheme();
   $('sound').onchange = e => Sound.setEnabled(e.target.checked);
+  $('music').onclick = e => {
+    if (e.shiftKey) Sound.forget(); else $('musicFile').click();
+  };
+  $('musicFile').onchange = e => { const f = e.target.files[0]; if (f) Sound.pick(f); e.target.value = ''; };
+  Sound.onTrack(name => {
+    $('music').classList.toggle('on', !!name);
+    $('music').title = (name ? 'Playing while the cars move: ' + name : 'No song loaded: a synthesised loop plays. Click to pick a song (e.g. Songbird)')
+      + ' · shift-click to clear a picked song';
+  });
   document.addEventListener('keydown', e => {
     if (e.target.tagName === 'INPUT') return;
     if (e.code === 'Space') { e.preventDefault(); setRunning(!running); }

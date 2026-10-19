@@ -84,5 +84,5 @@ direction of travel, or for any hall call when nothing is left beyond it.
 - **Sound** (toggle in the header):
   - a beep on every button press and a chime when doors open
   - music that fades in while any car is moving
-  - for the music, put your own copy of a track at `web/songbird.mp3`; without it, an original synthesized lounge loop plays
+  - for the music, the track at `web/songbird.mp3` plays (swap in your own file to change it), or click **♪ music** in the header to pick a song file in the browser; the page remembers it (shift-click to clear). Without either, an original synthesized lounge loop plays
 - **Keys:** Space runs or pauses; `s` or → steps one clock.

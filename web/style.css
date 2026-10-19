@@ -216,6 +216,7 @@ h2 { font-size: 12.5px; letter-spacing: .06em; }
 .regs, .sigs, .log { font-size: 13px; }
 .fsm .node rect { stroke: var(--edge); }
 .fsm .node text { font-size: 11px; }
+.hall { font-size: 11px; }
 
 /* ---------- rounded corners ---------- */
 .panel { border-radius: 10px; }

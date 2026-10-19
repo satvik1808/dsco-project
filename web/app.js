@@ -337,7 +337,7 @@
     ctx.clearRect(0, 0, w, h);
     const padL = 26, padT = 8, padB = 8, ph = h - padT - padB, pw = w - padL - 4;
     const y = p => padT + ph - (p / (N - 1)) * ph;
-    ctx.font = '10px ui-monospace, Menlo, monospace'; ctx.fillStyle = theme.muted; ctx.textBaseline = 'middle';
+    ctx.font = '11px ui-monospace, Menlo, Consolas, monospace'; ctx.fillStyle = theme.muted; ctx.textBaseline = 'middle';
     for (let f = 0; f < N; f++) {
       ctx.strokeStyle = theme.grid; ctx.lineWidth = 1;
       ctx.beginPath(); ctx.moveTo(padL, y(f)); ctx.lineTo(w - 4, y(f)); ctx.stroke();

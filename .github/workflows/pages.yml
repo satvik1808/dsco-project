@@ -18,6 +18,8 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      # stamp every script/stylesheet link with the commit, so browsers never reuse an old copy
+      - run: sed -i -E "s/\.(js|css)\"/.\1?v=${GITHUB_SHA::7}\"/g" web/index.html
       - uses: actions/upload-pages-artifact@v3
         with:
           path: web
